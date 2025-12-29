@@ -683,6 +683,289 @@
           </div>
         </div>
 
+        <!-- SSO Settings Card -->
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              SSO登录设置
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              配置OpenID Connect (OIDC)单点登录，支持自动创建用户和邮箱域名限制
+            </p>
+          </div>
+          <div class="p-6">
+            <!-- SSO Settings List -->
+            <div class="space-y-4">
+              <!-- 启用SSO登录 -->
+              <div class="flex items-center gap-4 border-b border-gray-100 pb-4 dark:border-dark-700">
+                <div class="w-48 flex-shrink-0">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">启用SSO登录</div>
+                </div>
+                <div class="flex-shrink-0">
+                  <Toggle
+                    :model-value="form.sso_enabled"
+                    @update:model-value="handleSSOSettingChange('sso_enabled', $event)"
+                  />
+                  <span class="ml-2 text-sm text-primary-600 dark:text-primary-400">
+                    {{ form.sso_enabled ? '开启' : '关闭' }}
+                  </span>
+                </div>
+                <div class="flex-1 text-sm text-gray-500 dark:text-gray-400">
+                  允许用户使用SSO (OpenID Connect)登录
+                </div>
+              </div>
+
+              <!-- 启用密码登录 -->
+              <div class="flex items-center gap-4 border-b border-gray-100 pb-4 dark:border-dark-700">
+                <div class="w-48 flex-shrink-0">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    启用密码登录
+                    <span class="ml-1 text-xs text-red-500">* 必填</span>
+                  </div>
+                </div>
+                <div class="flex-shrink-0">
+                  <Toggle
+                    :model-value="form.password_login_enabled"
+                    @update:model-value="handleSSOSettingChange('password_login_enabled', $event)"
+                  />
+                  <span class="ml-2 text-sm text-primary-600 dark:text-primary-400">
+                    {{ form.password_login_enabled ? '开启' : '关闭' }}
+                  </span>
+                </div>
+                <div class="flex-1 text-sm text-gray-500 dark:text-gray-400">
+                  允许用户使用密码登录（至少保留一种登录方式）
+                </div>
+              </div>
+
+              <!-- Issuer URL -->
+              <div class="flex items-center gap-4 border-b border-gray-100 pb-4 dark:border-dark-700">
+                <div class="w-48 flex-shrink-0">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    Issuer URL
+                    <span class="ml-1 text-xs text-red-500">* 必填</span>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <a
+                    v-if="form.sso_issuer_url"
+                    :href="form.sso_issuer_url"
+                    target="_blank"
+                    class="text-sm text-primary-600 hover:underline dark:text-primary-400"
+                  >
+                    {{ form.sso_issuer_url }}
+                    <svg class="ml-1 inline h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                  <span v-else class="text-sm text-gray-400 dark:text-gray-500">未配置</span>
+                </div>
+                <div class="flex-1 text-sm text-gray-500 dark:text-gray-400">
+                  OIDC Provider的Issuer URL（例如：https://accounts.google.com）
+                </div>
+                <button
+                  @click="handleEditSSOSetting('sso_issuer_url')"
+                  class="flex-shrink-0 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                >
+                  编辑
+                </button>
+              </div>
+
+              <!-- Client ID -->
+              <div class="flex items-center gap-4 border-b border-gray-100 pb-4 dark:border-dark-700">
+                <div class="w-48 flex-shrink-0">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    Client ID
+                    <span class="ml-1 text-xs text-red-500">* 必填</span>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <span v-if="form.sso_client_id" class="text-sm text-gray-700 dark:text-gray-300">
+                    {{ form.sso_client_id }}
+                  </span>
+                  <span v-else class="text-sm text-gray-400 dark:text-gray-500">未配置</span>
+                </div>
+                <div class="flex-1 text-sm text-gray-500 dark:text-gray-400">
+                  OIDC应用的Client ID
+                </div>
+                <button
+                  @click="handleEditSSOSetting('sso_client_id')"
+                  class="flex-shrink-0 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                >
+                  编辑
+                </button>
+              </div>
+
+              <!-- Client Secret -->
+              <div class="flex items-center gap-4 border-b border-gray-100 pb-4 dark:border-dark-700">
+                <div class="w-48 flex-shrink-0">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    Client Secret
+                    <span class="ml-1 text-xs text-red-500">* 必填</span>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <span v-if="form.sso_client_secret" class="text-sm text-gray-500 dark:text-gray-400">
+                    ••••••••（已加密）
+                  </span>
+                  <span v-else class="text-sm text-gray-400 dark:text-gray-500">未配置</span>
+                </div>
+                <div class="flex-1 text-sm text-gray-500 dark:text-gray-400">
+                  OIDC应用的Client Secret（已加密存储）
+                </div>
+                <button
+                  @click="handleEditSSOSetting('sso_client_secret')"
+                  class="flex-shrink-0 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                >
+                  编辑
+                </button>
+              </div>
+
+              <!-- Redirect URI -->
+              <div class="flex items-center gap-4 border-b border-gray-100 pb-4 dark:border-dark-700">
+                <div class="w-48 flex-shrink-0">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">
+                    Redirect URI
+                    <span class="ml-1 text-xs text-red-500">* 必填</span>
+                  </div>
+                </div>
+                <div class="flex-1">
+                  <a
+                    v-if="form.sso_redirect_uri"
+                    :href="form.sso_redirect_uri"
+                    target="_blank"
+                    class="text-sm text-primary-600 hover:underline dark:text-primary-400"
+                  >
+                    {{ form.sso_redirect_uri }}
+                    <svg class="ml-1 inline h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                  <span v-else class="text-sm text-gray-400 dark:text-gray-500">未配置</span>
+                </div>
+                <div class="flex-1 text-sm text-gray-500 dark:text-gray-400">
+                  SSO回调地址（例如：http://localhost:8080/auth/sso/callback）
+                </div>
+                <button
+                  @click="handleEditSSOSetting('sso_redirect_uri')"
+                  class="flex-shrink-0 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                >
+                  编辑
+                </button>
+              </div>
+
+              <!-- 允许的邮箱域名 -->
+              <div class="flex items-center gap-4 border-b border-gray-100 pb-4 dark:border-dark-700">
+                <div class="w-48 flex-shrink-0">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">允许的邮箱域名</div>
+                </div>
+                <div class="flex-1">
+                  <span
+                    v-if="form.sso_allowed_domains && form.sso_allowed_domains.length > 0"
+                    class="text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    {{ form.sso_allowed_domains.join(', ') }}
+                  </span>
+                  <span v-else class="text-sm text-gray-500 dark:text-gray-400">无限制</span>
+                </div>
+                <div class="flex-1 text-sm text-gray-500 dark:text-gray-400">
+                  限制允许SSO登录的邮箱域名（留空则不限制）
+                </div>
+                <button
+                  @click="handleEditSSOSetting('sso_allowed_domains')"
+                  class="flex-shrink-0 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                >
+                  编辑
+                </button>
+              </div>
+
+              <!-- 自动创建用户 -->
+              <div class="flex items-center gap-4 border-b border-gray-100 pb-4 dark:border-dark-700">
+                <div class="w-48 flex-shrink-0">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">自动创建用户</div>
+                </div>
+                <div class="flex-shrink-0">
+                  <Toggle
+                    :model-value="form.sso_auto_create_user"
+                    @update:model-value="handleSSOSettingChange('sso_auto_create_user', $event)"
+                  />
+                  <span class="ml-2 text-sm text-primary-600 dark:text-primary-400">
+                    {{ form.sso_auto_create_user ? '开启' : '关闭' }}
+                  </span>
+                </div>
+                <div class="flex-1 text-sm text-gray-500 dark:text-gray-400">
+                  首次SSO登录时自动创建用户账号
+                </div>
+              </div>
+
+              <!-- 最小信任等级 -->
+              <div class="flex items-center gap-4 pb-4">
+                <div class="w-48 flex-shrink-0">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">最小信任等级</div>
+                </div>
+                <div class="flex-1">
+                  <span class="text-sm text-gray-700 dark:text-gray-300">
+                    {{ form.sso_min_trust_level }}
+                  </span>
+                </div>
+                <div class="flex-1 text-sm text-gray-500 dark:text-gray-400">
+                  Discourse论坛最小信任等级要求（0-4，0表示无限制）
+                </div>
+                <button
+                  @click="handleEditSSOSetting('sso_min_trust_level')"
+                  class="flex-shrink-0 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                >
+                  编辑
+                </button>
+              </div>
+            </div>
+
+            <!-- Test SSO Connection Button -->
+            <div class="mt-6 flex justify-end">
+              <button
+                type="button"
+                @click="testSSOConnection"
+                :disabled="testingSso || !form.sso_issuer_url"
+                class="btn btn-secondary"
+              >
+                <svg
+                  v-if="testingSso"
+                  class="mr-2 h-4 w-4 animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                {{ testingSso ? '测试中...' : '测试SSO连接' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SSO Edit Dialog -->
+        <SettingEditDialog
+          :show="showSsoEditDialog"
+          :title="editingSettingLabel"
+          :label="editingSettingLabel"
+          :description="editingSettingDescription"
+          :input-type="editingSettingType"
+          :value="editingSettingValue"
+          :placeholder="editingSettingPlaceholder"
+          @close="showSsoEditDialog = false"
+          @save="saveSSOSetting"
+        />
+
         <!-- Save Button -->
         <div class="flex justify-end">
           <button type="submit" :disabled="saving" class="btn btn-primary">
@@ -716,6 +999,7 @@ import { adminAPI } from '@/api'
 import type { SystemSettings } from '@/api/admin/settings'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Toggle from '@/components/common/Toggle.vue'
+import SettingEditDialog from '@/components/admin/SettingEditDialog.vue'
 import { useAppStore } from '@/stores'
 
 const { t } = useI18n()
@@ -734,6 +1018,16 @@ const adminApiKeyExists = ref(false)
 const adminApiKeyMasked = ref('')
 const adminApiKeyOperating = ref(false)
 const newAdminApiKey = ref('')
+
+// SSO Settings 状态
+const testingSso = ref(false)
+const showSsoEditDialog = ref(false)
+const editingSettingKey = ref('')
+const editingSettingLabel = ref('')
+const editingSettingDescription = ref('')
+const editingSettingType = ref<'text' | 'password' | 'number' | 'url' | 'array' | 'textarea'>('text')
+const editingSettingValue = ref<any>('')
+const editingSettingPlaceholder = ref('')
 
 const form = reactive<SystemSettings>({
   registration_enabled: true,
@@ -756,7 +1050,17 @@ const form = reactive<SystemSettings>({
   // Cloudflare Turnstile
   turnstile_enabled: false,
   turnstile_site_key: '',
-  turnstile_secret_key: ''
+  turnstile_secret_key: '',
+  // SSO Settings
+  sso_enabled: false,
+  password_login_enabled: true,
+  sso_issuer_url: '',
+  sso_client_id: '',
+  sso_client_secret: '',
+  sso_redirect_uri: '',
+  sso_allowed_domains: [],
+  sso_auto_create_user: true,
+  sso_min_trust_level: 0
 })
 
 function handleLogoUpload(event: Event) {
@@ -936,6 +1240,137 @@ function copyNewKey() {
     .catch(() => {
       appStore.showError(t('common.copyFailed'))
     })
+}
+
+// SSO Settings Methods
+async function handleSSOSettingChange(key: string, value: any) {
+  try {
+    // 验证逻辑：至少保留一种登录方式
+    if (key === 'sso_enabled' || key === 'password_login_enabled') {
+      const newSSO = key === 'sso_enabled' ? value : form.sso_enabled
+      const newPwd = key === 'password_login_enabled' ? value : form.password_login_enabled
+
+      if (!newSSO && !newPwd) {
+        appStore.showError('至少需要启用一种登录方式（SSO或密码登录）')
+        return
+      }
+    }
+
+    // 调用单项更新API
+    await adminAPI.settings.updateSingleSetting(key, value)
+
+    // 更新本地表单值
+    ;(form as any)[key] = value
+
+    // 如果更新的是公开配置，刷新缓存
+    await appStore.fetchPublicSettings(true)
+
+    appStore.showSuccess('设置已保存')
+  } catch (error: any) {
+    appStore.showError('保存失败: ' + (error.message || t('common.unknownError')))
+    // 恢复旧值
+    await loadSettings()
+  }
+}
+
+function handleEditSSOSetting(key: string) {
+  // 配置项元数据映射
+  const settingsMeta: Record<string, { label: string; description: string; type: 'text' | 'password' | 'number' | 'url' | 'array' | 'textarea'; placeholder: string }> = {
+    sso_issuer_url: {
+      label: 'Issuer URL',
+      description: 'OIDC Provider的Issuer URL',
+      type: 'url',
+      placeholder: 'https://accounts.google.com'
+    },
+    sso_client_id: {
+      label: 'Client ID',
+      description: 'OIDC应用的Client ID',
+      type: 'text',
+      placeholder: 'your-client-id.apps.googleusercontent.com'
+    },
+    sso_client_secret: {
+      label: 'Client Secret',
+      description: 'OIDC应用的Client Secret（已加密存储）',
+      type: 'password',
+      placeholder: '留空则不修改'
+    },
+    sso_redirect_uri: {
+      label: 'Redirect URI',
+      description: 'SSO回调地址',
+      type: 'url',
+      placeholder: 'http://localhost:8080/auth/sso/callback'
+    },
+    sso_allowed_domains: {
+      label: '允许的邮箱域名',
+      description: '限制允许SSO登录的邮箱域名（留空则不限制）',
+      type: 'array',
+      placeholder: 'example.com, company.com'
+    },
+    sso_min_trust_level: {
+      label: '最小信任等级',
+      description: 'Discourse论坛最小信任等级要求（0-4）',
+      type: 'number',
+      placeholder: '0'
+    }
+  }
+
+  const meta = settingsMeta[key]
+  if (!meta) return
+
+  editingSettingKey.value = key
+  editingSettingLabel.value = meta.label
+  editingSettingDescription.value = meta.description
+  editingSettingType.value = meta.type
+  editingSettingValue.value = (form as any)[key]
+  editingSettingPlaceholder.value = meta.placeholder
+
+  showSsoEditDialog.value = true
+}
+
+async function saveSSOSetting(value: any) {
+  try {
+    const key = editingSettingKey.value
+
+    // 对于密码字段，如果为空则不更新
+    if (editingSettingType.value === 'password' && !value) {
+      showSsoEditDialog.value = false
+      return
+    }
+
+    await adminAPI.settings.updateSingleSetting(key, value)
+
+    // 更新本地表单值
+    ;(form as any)[key] = value
+
+    // 如果更新的是公开配置，刷新缓存
+    await appStore.fetchPublicSettings(true)
+
+    showSsoEditDialog.value = false
+    appStore.showSuccess('设置已保存')
+  } catch (error: any) {
+    appStore.showError('保存失败: ' + (error.message || t('common.unknownError')))
+  }
+}
+
+async function testSSOConnection() {
+  if (!form.sso_issuer_url) {
+    appStore.showError('请先配置Issuer URL')
+    return
+  }
+
+  testingSso.value = true
+  try {
+    const result = await adminAPI.settings.testSSOConnection({
+      issuer_url: form.sso_issuer_url
+    })
+    appStore.showSuccess(`SSO配置有效！Issuer: ${result.issuer}`)
+  } catch (error: any) {
+    appStore.showError(
+      '测试失败: ' + (error.message || t('common.unknownError'))
+    )
+  } finally {
+    testingSso.value = false
+  }
 }
 
 onMounted(() => {

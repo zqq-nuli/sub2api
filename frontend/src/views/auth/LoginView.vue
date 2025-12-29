@@ -11,8 +11,35 @@
         </p>
       </div>
 
+      <!-- SSO Login Button -->
+      <div v-if="ssoEnabled" class="space-y-4">
+        <button
+          type="button"
+          @click="handleSSOLogin"
+          :disabled="isLoading"
+          class="btn w-full border-2 border-gray-300 bg-white text-gray-700 transition-all hover:border-gray-400 hover:bg-gray-50 dark:border-dark-600 dark:bg-dark-800 dark:text-dark-200 dark:hover:border-dark-500 dark:hover:bg-dark-700"
+        >
+          <svg class="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+          </svg>
+          使用SSO登录
+        </button>
+
+        <!-- Divider (shown when both methods are enabled) -->
+        <div v-if="passwordLoginEnabled" class="relative">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-300 dark:border-dark-600"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="bg-white px-4 text-gray-500 dark:bg-dark-800 dark:text-dark-400">
+              或使用密码登录
+            </span>
+          </div>
+        </div>
+      </div>
+
       <!-- Login Form -->
-      <form @submit.prevent="handleLogin" class="space-y-5">
+      <form v-if="passwordLoginEnabled" @submit.prevent="handleLogin" class="space-y-5">
         <!-- Email Input -->
         <div>
           <label for="email" class="input-label">
@@ -239,7 +266,7 @@ import { useI18n } from 'vue-i18n'
 import { AuthLayout } from '@/components/layout'
 import TurnstileWidget from '@/components/TurnstileWidget.vue'
 import { useAuthStore, useAppStore } from '@/stores'
-import { getPublicSettings } from '@/api/auth'
+import { getPublicSettings, getSSOConfig, initiateSSOLogin } from '@/api/auth'
 
 const { t } = useI18n()
 
@@ -258,6 +285,10 @@ const showPassword = ref<boolean>(false)
 // Public settings
 const turnstileEnabled = ref<boolean>(false)
 const turnstileSiteKey = ref<string>('')
+
+// SSO configuration
+const ssoEnabled = ref<boolean>(false)
+const passwordLoginEnabled = ref<boolean>(true)
 
 // Turnstile
 const turnstileRef = ref<InstanceType<typeof TurnstileWidget> | null>(null)
@@ -278,11 +309,19 @@ const errors = reactive({
 
 onMounted(async () => {
   try {
+    // Load public settings for Turnstile
     const settings = await getPublicSettings()
     turnstileEnabled.value = settings.turnstile_enabled
     turnstileSiteKey.value = settings.turnstile_site_key || ''
+
+    // Load SSO configuration
+    const ssoConfig = await getSSOConfig()
+    ssoEnabled.value = ssoConfig.sso_enabled
+    passwordLoginEnabled.value = ssoConfig.password_login_enabled
   } catch (error) {
-    console.error('Failed to load public settings:', error)
+    console.error('Failed to load settings:', error)
+    // Default to password login if settings fail to load
+    passwordLoginEnabled.value = true
   }
 })
 
@@ -388,6 +427,38 @@ async function handleLogin(): Promise<void> {
     // Also show error toast
     appStore.showError(errorMessage.value)
   } finally {
+    isLoading.value = false
+  }
+}
+
+// ==================== SSO Handlers ====================
+
+async function handleSSOLogin(): Promise<void> {
+  // Clear previous error
+  errorMessage.value = ''
+  isLoading.value = true
+
+  try {
+    // Get SSO authorization URL
+    const { auth_url, session_id } = await initiateSSOLogin()
+
+    // Save session ID to sessionStorage
+    sessionStorage.setItem('sso_session_id', session_id)
+
+    // Redirect to SSO provider
+    window.location.href = auth_url
+  } catch (error: unknown) {
+    const err = error as { message?: string; response?: { data?: { detail?: string } } }
+
+    if (err.response?.data?.detail) {
+      errorMessage.value = err.response.data.detail
+    } else if (err.message) {
+      errorMessage.value = err.message
+    } else {
+      errorMessage.value = 'Failed to initiate SSO login. Please try again.'
+    }
+
+    appStore.showError(errorMessage.value)
     isLoading.value = false
   }
 }

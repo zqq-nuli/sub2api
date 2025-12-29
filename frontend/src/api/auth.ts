@@ -113,6 +113,30 @@ export async function sendVerifyCode(
   return data
 }
 
+/**
+ * Get SSO configuration
+ * @returns SSO configuration including enabled status
+ */
+export async function getSSOConfig(): Promise<{
+  sso_enabled: boolean
+  password_login_enabled: boolean
+}> {
+  const { data } = await apiClient.get('/auth/sso/config')
+  return data
+}
+
+/**
+ * Initiate SSO login flow
+ * @returns Authorization URL and session ID
+ */
+export async function initiateSSOLogin(): Promise<{
+  auth_url: string
+  session_id: string
+}> {
+  const { data } = await apiClient.get('/auth/sso/authorize')
+  return data
+}
+
 export const authAPI = {
   login,
   register,
@@ -123,7 +147,9 @@ export const authAPI = {
   getAuthToken,
   clearAuthToken,
   getPublicSettings,
-  sendVerifyCode
+  sendVerifyCode,
+  getSSOConfig,
+  initiateSSOLogin
 }
 
 export default authAPI

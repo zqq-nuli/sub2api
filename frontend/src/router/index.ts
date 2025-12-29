@@ -67,6 +67,15 @@ const routes: RouteRecordRaw[] = [
       title: 'OAuth Callback'
     }
   },
+  {
+    path: '/auth/sso/callback',
+    name: 'SSOCallback',
+    component: () => import('@/views/auth/SSOCallbackView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'SSO Callback'
+    }
+  },
 
   // ==================== User Routes ====================
   {

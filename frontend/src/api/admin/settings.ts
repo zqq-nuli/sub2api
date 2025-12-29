@@ -34,6 +34,16 @@ export interface SystemSettings {
   turnstile_enabled: boolean
   turnstile_site_key: string
   turnstile_secret_key: string
+  // SSO settings
+  sso_enabled: boolean
+  password_login_enabled: boolean
+  sso_issuer_url: string
+  sso_client_id: string
+  sso_client_secret: string
+  sso_redirect_uri: string
+  sso_allowed_domains: string[]
+  sso_auto_create_user: boolean
+  sso_min_trust_level: number
 }
 
 /**
@@ -134,7 +144,35 @@ export async function regenerateAdminApiKey(): Promise<{ key: string }> {
  * @returns Success message
  */
 export async function deleteAdminApiKey(): Promise<{ message: string }> {
-  const { data } = await apiClient.delete<{ message: string }>('/admin/settings/admin-api-key')
+  const { data} = await apiClient.delete<{ message: string }>('/admin/settings/admin-api-key')
+  return data
+}
+
+/**
+ * Test SSO connection request
+ */
+export interface TestSSORequest {
+  issuer_url: string
+}
+
+/**
+ * Test SSO connection with provided issuer URL
+ * @param config - SSO configuration to test
+ * @returns Test result message
+ */
+export async function testSSOConnection(config: TestSSORequest): Promise<{ message: string; issuer: string }> {
+  const { data } = await apiClient.post<{ message: string; issuer: string }>('/admin/settings/test-sso', config)
+  return data
+}
+
+/**
+ * Update single setting (for real-time save)
+ * @param key - Setting key
+ * @param value - Setting value
+ * @returns Success message
+ */
+export async function updateSingleSetting(key: string, value: any): Promise<{ message: string }> {
+  const { data } = await apiClient.patch<{ message: string }>(`/admin/settings/${key}`, { value })
   return data
 }
 
@@ -145,7 +183,9 @@ export const settingsAPI = {
   sendTestEmail,
   getAdminApiKey,
   regenerateAdminApiKey,
-  deleteAdminApiKey
+  deleteAdminApiKey,
+  testSSOConnection,
+  updateSingleSetting
 }
 
 export default settingsAPI
