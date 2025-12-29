@@ -26,6 +26,16 @@ type SystemSettings struct {
 
 	DefaultConcurrency int     `json:"default_concurrency"`
 	DefaultBalance     float64 `json:"default_balance"`
+
+	// SSO设置
+	SSOEnabled           bool     `json:"sso_enabled"`
+	PasswordLoginEnabled bool     `json:"password_login_enabled"`
+	SSOIssuerURL         string   `json:"sso_issuer_url"`
+	SSOClientID          string   `json:"sso_client_id"`
+	SSOClientSecret      string   `json:"sso_client_secret,omitempty"`
+	SSORedirectURI       string   `json:"sso_redirect_uri"`
+	SSOAllowedDomains    []string `json:"sso_allowed_domains"`
+	SSOAutoCreateUser    bool     `json:"sso_auto_create_user"`
 }
 
 type PublicSettings struct {

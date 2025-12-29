@@ -251,6 +251,13 @@ func (s *AuthService) IsEmailVerifyEnabled(ctx context.Context) bool {
 
 // Login 用户登录，返回JWT token
 func (s *AuthService) Login(ctx context.Context, email, password string) (string, *User, error) {
+	// 验证密码登录是否启用
+	if s.settingService != nil {
+		if err := s.settingService.ValidateLoginMethod(ctx, "password"); err != nil {
+			return "", nil, err
+		}
+	}
+
 	// 查找用户
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {

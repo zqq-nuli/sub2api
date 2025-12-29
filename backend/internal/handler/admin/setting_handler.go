@@ -1,7 +1,10 @@
 package admin
 
 import (
+	"fmt"
+
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/oidc"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
@@ -52,6 +55,15 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		DocUrl:              settings.DocUrl,
 		DefaultConcurrency:  settings.DefaultConcurrency,
 		DefaultBalance:      settings.DefaultBalance,
+		// SSO设置
+		SSOEnabled:           settings.SSOEnabled,
+		PasswordLoginEnabled: settings.PasswordLoginEnabled,
+		SSOIssuerURL:         settings.SSOIssuerURL,
+		SSOClientID:          settings.SSOClientID,
+		SSOClientSecret:      settings.SSOClientSecret,
+		SSORedirectURI:       settings.SSORedirectURI,
+		SSOAllowedDomains:    settings.SSOAllowedDomains,
+		SSOAutoCreateUser:    settings.SSOAutoCreateUser,
 	})
 }
 
@@ -86,6 +98,16 @@ type UpdateSettingsRequest struct {
 	// 默认配置
 	DefaultConcurrency int     `json:"default_concurrency"`
 	DefaultBalance     float64 `json:"default_balance"`
+
+	// SSO设置
+	SSOEnabled           bool     `json:"sso_enabled"`
+	PasswordLoginEnabled bool     `json:"password_login_enabled"`
+	SSOIssuerURL         string   `json:"sso_issuer_url"`
+	SSOClientID          string   `json:"sso_client_id"`
+	SSOClientSecret      string   `json:"sso_client_secret"`
+	SSORedirectURI       string   `json:"sso_redirect_uri"`
+	SSOAllowedDomains    []string `json:"sso_allowed_domains"`
+	SSOAutoCreateUser    bool     `json:"sso_auto_create_user"`
 }
 
 // UpdateSettings 更新系统设置
@@ -129,6 +151,15 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		DocUrl:              req.DocUrl,
 		DefaultConcurrency:  req.DefaultConcurrency,
 		DefaultBalance:      req.DefaultBalance,
+		// SSO设置
+		SSOEnabled:           req.SSOEnabled,
+		PasswordLoginEnabled: req.PasswordLoginEnabled,
+		SSOIssuerURL:         req.SSOIssuerURL,
+		SSOClientID:          req.SSOClientID,
+		SSOClientSecret:      req.SSOClientSecret,
+		SSORedirectURI:       req.SSORedirectURI,
+		SSOAllowedDomains:    req.SSOAllowedDomains,
+		SSOAutoCreateUser:    req.SSOAutoCreateUser,
 	}
 
 	if err := h.settingService.UpdateSettings(c.Request.Context(), settings); err != nil {
@@ -164,6 +195,15 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		DocUrl:              updatedSettings.DocUrl,
 		DefaultConcurrency:  updatedSettings.DefaultConcurrency,
 		DefaultBalance:      updatedSettings.DefaultBalance,
+		// SSO设置
+		SSOEnabled:           updatedSettings.SSOEnabled,
+		PasswordLoginEnabled: updatedSettings.PasswordLoginEnabled,
+		SSOIssuerURL:         updatedSettings.SSOIssuerURL,
+		SSOClientID:          updatedSettings.SSOClientID,
+		SSOClientSecret:      updatedSettings.SSOClientSecret,
+		SSORedirectURI:       updatedSettings.SSORedirectURI,
+		SSOAllowedDomains:    updatedSettings.SSOAllowedDomains,
+		SSOAutoCreateUser:    updatedSettings.SSOAutoCreateUser,
 	})
 }
 
@@ -339,4 +379,73 @@ func (h *SettingHandler) DeleteAdminApiKey(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"message": "Admin API key deleted"})
+}
+
+// TestSSORequest 测试SSO连接请求
+type TestSSORequest struct {
+	IssuerURL string `json:"issuer_url" binding:"required"`
+}
+
+// TestSSOConnection 测试SSO配置
+// POST /api/v1/admin/settings/test-sso
+func (h *SettingHandler) TestSSOConnection(c *gin.Context) {
+	var req TestSSORequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	// 使用OIDC客户端验证配置
+	oidcClient := oidc.NewOIDCClient()
+	config, err := oidcClient.DiscoverOIDCConfig(c.Request.Context(), req.IssuerURL)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{
+		"message": "SSO configuration is valid",
+		"issuer":  config.Issuer,
+	})
+}
+
+// UpdateSingleSettingRequest 更新单个配置项请求
+type UpdateSingleSettingRequest struct {
+	Value interface{} `json:"value" binding:"required"`
+}
+
+// UpdateSingleSetting 更新单个配置项（用于实时保存）
+// PATCH /api/v1/admin/settings/:key
+func (h *SettingHandler) UpdateSingleSetting(c *gin.Context) {
+	key := c.Param("key")
+	if key == "" {
+		response.BadRequest(c, "Setting key is required")
+		return
+	}
+
+	var req UpdateSingleSettingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	// 将value转换为字符串
+	value := fmt.Sprintf("%v", req.Value)
+
+	// 布尔值特殊处理
+	if boolVal, ok := req.Value.(bool); ok {
+		if boolVal {
+			value = "true"
+		} else {
+			value = "false"
+		}
+	}
+
+	// 更新单个配置
+	if err := h.settingService.SetSetting(c.Request.Context(), key, value); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{"message": "Setting updated successfully"})
 }

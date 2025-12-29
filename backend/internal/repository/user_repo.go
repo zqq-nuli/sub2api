@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -22,7 +23,10 @@ func NewUserRepository(db *gorm.DB) service.UserRepository {
 
 func (r *userRepository) Create(ctx context.Context, user *service.User) error {
 	m := userModelFromService(user)
-	err := r.db.WithContext(ctx).Create(m).Error
+	log.Printf("[UserRepo] Creating user model: Email=%s, Username=%s, Avatar=%s, SSOData length=%d",
+		m.Email, m.Username, m.Avatar, len(m.SSOData))
+	// Use Select("*") to force GORM to include all fields (including newly added avatar and sso_data)
+	err := r.db.WithContext(ctx).Select("*").Create(m).Error
 	if err == nil {
 		applyUserModelToService(user, m)
 	}
@@ -198,6 +202,8 @@ type userModel struct {
 	Concurrency   int            `gorm:"default:5;not null"`
 	Status        string         `gorm:"size:20;default:active;not null"`
 	AllowedGroups pq.Int64Array  `gorm:"type:bigint[]"`
+	Avatar        string         `gorm:"size:500;default:''"`           // User avatar URL
+	SSOData       string         `gorm:"type:text;default:''"`          // SSO callback data (JSON)
 	CreatedAt     time.Time      `gorm:"not null"`
 	UpdatedAt     time.Time      `gorm:"not null"`
 	DeletedAt     gorm.DeletedAt `gorm:"index"`
@@ -221,6 +227,8 @@ func userModelToService(m *userModel) *service.User {
 		Concurrency:   m.Concurrency,
 		Status:        m.Status,
 		AllowedGroups: []int64(m.AllowedGroups),
+		Avatar:        m.Avatar,
+		SSOData:       m.SSOData,
 		CreatedAt:     m.CreatedAt,
 		UpdatedAt:     m.UpdatedAt,
 	}
@@ -242,6 +250,8 @@ func userModelFromService(u *service.User) *userModel {
 		Concurrency:   u.Concurrency,
 		Status:        u.Status,
 		AllowedGroups: pq.Int64Array(u.AllowedGroups),
+		Avatar:        u.Avatar,
+		SSOData:       u.SSOData,
 		CreatedAt:     u.CreatedAt,
 		UpdatedAt:     u.UpdatedAt,
 	}

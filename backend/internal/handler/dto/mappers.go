@@ -17,6 +17,7 @@ func UserFromServiceShallow(u *service.User) *User {
 		Concurrency:   u.Concurrency,
 		Status:        u.Status,
 		AllowedGroups: u.AllowedGroups,
+		Avatar:        u.Avatar,
 		CreatedAt:     u.CreatedAt,
 		UpdatedAt:     u.UpdatedAt,
 	}

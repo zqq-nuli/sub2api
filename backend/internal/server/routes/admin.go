@@ -183,8 +183,10 @@ func registerSettingsRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	{
 		adminSettings.GET("", h.Admin.Setting.GetSettings)
 		adminSettings.PUT("", h.Admin.Setting.UpdateSettings)
+		adminSettings.PATCH("/:key", h.Admin.Setting.UpdateSingleSetting)
 		adminSettings.POST("/test-smtp", h.Admin.Setting.TestSmtpConnection)
 		adminSettings.POST("/send-test-email", h.Admin.Setting.SendTestEmail)
+		adminSettings.POST("/test-sso", h.Admin.Setting.TestSSOConnection)
 		// Admin API Key 管理
 		adminSettings.GET("/admin-api-key", h.Admin.Setting.GetAdminApiKey)
 		adminSettings.POST("/admin-api-key/regenerate", h.Admin.Setting.RegenerateAdminApiKey)

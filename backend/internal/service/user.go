@@ -18,6 +18,8 @@ type User struct {
 	Concurrency   int
 	Status        string
 	AllowedGroups []int64
+	Avatar        string // User avatar URL
+	SSOData       string // SSO callback data (JSON), reserved for future use
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 
