@@ -164,6 +164,7 @@
               <input
                 id="username"
                 v-model="profileForm.username"
+                :disabled="user?.email.includes('linux.do')"
                 type="text"
                 class="input"
                 :placeholder="t('profile.enterUsername')"
@@ -193,7 +194,7 @@
       </div>
 
       <!-- Change Password Section -->
-      <div class="card">
+      <div class="card" v-if="!user?.email.includes('linux.do')">
         <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
           <h2 class="text-lg font-medium text-gray-900 dark:text-white">
             {{ t('profile.changePassword') }}

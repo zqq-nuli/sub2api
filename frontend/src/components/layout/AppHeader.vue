@@ -71,7 +71,12 @@
             class="flex items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-dark-800"
             aria-label="User Menu"
           >
+            <!-- Avatar: image or initials -->
+            <div v-if="user.avatar" class="h-8 w-8 overflow-hidden rounded-xl shadow-sm">
+              <img :src="user.avatar" :alt="displayName" class="h-full w-full object-cover" />
+            </div>
             <div
+              v-else
               class="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-sm font-medium text-white shadow-sm"
             >
               {{ userInitials }}
@@ -107,7 +112,7 @@
                 <div class="text-sm font-medium text-gray-900 dark:text-white">
                   {{ displayName }}
                 </div>
-                <div class="text-xs text-gray-500 dark:text-dark-400">{{ user.email }}</div>
+                <div class="text-xs text-gray-500 dark:text-dark-400">{{ truncatedEmail }}</div>
               </div>
 
               <!-- Balance (mobile only) -->
@@ -264,6 +269,13 @@ const userInitials = computed(() => {
 const displayName = computed(() => {
   if (!user.value) return ''
   return user.value.username || user.value.email?.split('@')[0] || ''
+})
+
+const truncatedEmail = computed(() => {
+  if (!user.value?.email) return ''
+  return user.value.email.length > 25
+    ? user.value.email.substring(0, 25) + '...'
+    : user.value.email
 })
 
 const pageTitle = computed(() => {

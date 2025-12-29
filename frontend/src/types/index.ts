@@ -15,6 +15,7 @@ export interface User {
   concurrency: number // Allowed concurrent requests
   status: 'active' | 'disabled' // Account status
   allowed_groups: number[] | null // Allowed group IDs (null = all non-exclusive groups)
+  avatar: string // User avatar URL (from SSO or custom)
   subscriptions?: UserSubscription[] // User's active subscriptions
   created_at: string
   updated_at: string
