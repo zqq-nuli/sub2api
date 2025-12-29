@@ -125,14 +125,16 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	openAIGatewayService := service.NewOpenAIGatewayService(accountRepository, usageLogRepository, userRepository, userSubscriptionRepository, gatewayCache, configConfig, billingService, rateLimitService, billingCacheService, httpUpstream, deferredService)
 	openAIGatewayHandler := handler.NewOpenAIGatewayHandler(openAIGatewayService, concurrencyService, billingCacheService)
 	handlerSettingHandler := handler.ProvideSettingHandler(settingService, buildInfo)
-	handlers := handler.ProvideHandlers(authHandler, userHandler, apiKeyHandler, usageHandler, redeemHandler, subscriptionHandler, adminHandlers, gatewayHandler, openAIGatewayHandler, handlerSettingHandler)
+	oidcssoService := service.ProvideOIDCSSOService(settingService, userRepository, authService)
+	ssoHandler := handler.NewSSOHandler(oidcssoService, settingService)
+	handlers := handler.ProvideHandlers(authHandler, userHandler, apiKeyHandler, usageHandler, redeemHandler, subscriptionHandler, adminHandlers, gatewayHandler, openAIGatewayHandler, handlerSettingHandler, ssoHandler)
 	jwtAuthMiddleware := middleware.NewJWTAuthMiddleware(authService, userService)
 	adminAuthMiddleware := middleware.NewAdminAuthMiddleware(authService, userService, settingService)
 	apiKeyAuthMiddleware := middleware.NewApiKeyAuthMiddleware(apiKeyService, subscriptionService, configConfig)
 	engine := server.ProvideRouter(configConfig, handlers, jwtAuthMiddleware, adminAuthMiddleware, apiKeyAuthMiddleware, apiKeyService, subscriptionService)
 	httpServer := server.ProvideHTTPServer(configConfig, engine)
 	tokenRefreshService := service.ProvideTokenRefreshService(accountRepository, oAuthService, openAIOAuthService, geminiOAuthService, configConfig)
-	v := provideCleanup(db, client, tokenRefreshService, pricingService, emailQueueService, oAuthService, openAIOAuthService, geminiOAuthService)
+	v := provideCleanup(db, client, tokenRefreshService, pricingService, emailQueueService, oAuthService, openAIOAuthService, geminiOAuthService, oidcssoService)
 	application := &Application{
 		Server:  httpServer,
 		Cleanup: v,
@@ -163,6 +165,7 @@ func provideCleanup(
 	oauth *service.OAuthService,
 	openaiOAuth *service.OpenAIOAuthService,
 	geminiOAuth *service.GeminiOAuthService,
+	sso *service.OIDCSSOService,
 ) func() {
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -194,6 +197,10 @@ func provideCleanup(
 			}},
 			{"GeminiOAuthService", func() error {
 				geminiOAuth.Stop()
+				return nil
+			}},
+			{"OIDCSSOService", func() error {
+				sso.Stop()
 				return nil
 			}},
 			{"Redis", func() error {

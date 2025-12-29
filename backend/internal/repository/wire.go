@@ -38,4 +38,5 @@ var ProviderSet = wire.NewSet(
 	NewOpenAIOAuthClient,
 	NewGeminiOAuthClient,
 	NewGeminiCliCodeAssistClient,
+	// Note: OIDCClient is created directly in OIDCSSOService, not via Wire
 )

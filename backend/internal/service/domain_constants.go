@@ -90,6 +90,17 @@ const (
 
 	// 管理员 API Key
 	SettingKeyAdminApiKey = "admin_api_key" // 全局管理员 API Key（用于外部系统集成）
+
+	// SSO设置
+	SettingKeySSOEnabled           = "sso_enabled"             // 是否启用SSO登录
+	SettingKeyPasswordLoginEnabled = "password_login_enabled"  // 是否启用密码登录
+	SettingKeySSOIssuerURL         = "sso_issuer_url"          // OIDC Issuer URL
+	SettingKeySSOClientID          = "sso_client_id"           // OIDC Client ID
+	SettingKeySSOClientSecret      = "sso_client_secret"       // OIDC Client Secret
+	SettingKeySSORedirectURI       = "sso_redirect_uri"        // OIDC Redirect URI
+	SettingKeySSOAllowedDomains    = "sso_allowed_domains"     // 允许的邮箱域名（JSON数组）
+	SettingKeySSOAutoCreateUser    = "sso_auto_create_user"    // 是否自动创建用户
+	SettingKeySSOMinTrustLevel     = "sso_min_trust_level"     // 最小信任等级（0-4）
 )
 
 // Admin API Key prefix (distinct from user "sk-" keys)

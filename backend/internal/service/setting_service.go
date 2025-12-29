@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -13,8 +14,12 @@ import (
 )
 
 var (
-	ErrRegistrationDisabled = infraerrors.Forbidden("REGISTRATION_DISABLED", "registration is currently disabled")
-	ErrSettingNotFound      = infraerrors.NotFound("SETTING_NOT_FOUND", "setting not found")
+	ErrRegistrationDisabled     = infraerrors.Forbidden("REGISTRATION_DISABLED", "registration is currently disabled")
+	ErrSettingNotFound          = infraerrors.NotFound("SETTING_NOT_FOUND", "setting not found")
+	ErrPasswordLoginDisabled    = infraerrors.Forbidden("PASSWORD_LOGIN_DISABLED", "password login is disabled")
+	ErrSSOLoginDisabled         = infraerrors.Forbidden("SSO_LOGIN_DISABLED", "SSO login is disabled")
+	ErrNoLoginMethodAvailable   = infraerrors.ServiceUnavailable("NO_LOGIN_METHOD", "no login method available")
+	ErrInvalidLoginConfig       = infraerrors.BadRequest("INVALID_LOGIN_CONFIG", "at least one login method must be enabled")
 )
 
 type SettingRepository interface {
@@ -87,6 +92,11 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 
 // UpdateSettings 更新系统设置
 func (s *SettingService) UpdateSettings(ctx context.Context, settings *SystemSettings) error {
+	// 验证登录方式配置
+	if !settings.SSOEnabled && !settings.PasswordLoginEnabled {
+		return ErrInvalidLoginConfig
+	}
+
 	updates := make(map[string]string)
 
 	// 注册设置
@@ -122,6 +132,24 @@ func (s *SettingService) UpdateSettings(ctx context.Context, settings *SystemSet
 	// 默认配置
 	updates[SettingKeyDefaultConcurrency] = strconv.Itoa(settings.DefaultConcurrency)
 	updates[SettingKeyDefaultBalance] = strconv.FormatFloat(settings.DefaultBalance, 'f', 8, 64)
+
+	// SSO设置
+	updates[SettingKeySSOEnabled] = strconv.FormatBool(settings.SSOEnabled)
+	updates[SettingKeyPasswordLoginEnabled] = strconv.FormatBool(settings.PasswordLoginEnabled)
+	updates[SettingKeySSOIssuerURL] = settings.SSOIssuerURL
+	updates[SettingKeySSOClientID] = settings.SSOClientID
+	if settings.SSOClientSecret != "" {
+		updates[SettingKeySSOClientSecret] = settings.SSOClientSecret
+	}
+	updates[SettingKeySSORedirectURI] = settings.SSORedirectURI
+	// 将数组转为JSON字符串
+	if len(settings.SSOAllowedDomains) > 0 {
+		domainsJSON, _ := json.Marshal(settings.SSOAllowedDomains)
+		updates[SettingKeySSOAllowedDomains] = string(domainsJSON)
+	} else {
+		updates[SettingKeySSOAllowedDomains] = "[]"
+	}
+	updates[SettingKeySSOAutoCreateUser] = strconv.FormatBool(settings.SSOAutoCreateUser)
 
 	return s.settingRepo.SetMultiple(ctx, updates)
 }
@@ -192,14 +220,19 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 
 	// 初始化默认设置
 	defaults := map[string]string{
-		SettingKeyRegistrationEnabled: "true",
-		SettingKeyEmailVerifyEnabled:  "false",
-		SettingKeySiteName:            "Sub2API",
-		SettingKeySiteLogo:            "",
-		SettingKeyDefaultConcurrency:  strconv.Itoa(s.cfg.Default.UserConcurrency),
-		SettingKeyDefaultBalance:      strconv.FormatFloat(s.cfg.Default.UserBalance, 'f', 8, 64),
-		SettingKeySmtpPort:            "587",
-		SettingKeySmtpUseTLS:          "false",
+		SettingKeyRegistrationEnabled:  "true",
+		SettingKeyEmailVerifyEnabled:   "false",
+		SettingKeySiteName:             "Sub2API",
+		SettingKeySiteLogo:             "",
+		SettingKeyDefaultConcurrency:   strconv.Itoa(s.cfg.Default.UserConcurrency),
+		SettingKeyDefaultBalance:       strconv.FormatFloat(s.cfg.Default.UserBalance, 'f', 8, 64),
+		SettingKeySmtpPort:             "587",
+		SettingKeySmtpUseTLS:           "false",
+		// SSO默认设置
+		SettingKeySSOEnabled:           "false",
+		SettingKeyPasswordLoginEnabled: "true",
+		SettingKeySSOAllowedDomains:    "[]",
+		SettingKeySSOAutoCreateUser:    "true",
 	}
 
 	return s.settingRepo.SetMultiple(ctx, defaults)
@@ -223,6 +256,13 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		ApiBaseUrl:          settings[SettingKeyApiBaseUrl],
 		ContactInfo:         settings[SettingKeyContactInfo],
 		DocUrl:              settings[SettingKeyDocUrl],
+		// SSO设置
+		SSOEnabled:           settings[SettingKeySSOEnabled] == "true",
+		PasswordLoginEnabled: s.getBoolOrDefault(settings, SettingKeyPasswordLoginEnabled, true),
+		SSOIssuerURL:         settings[SettingKeySSOIssuerURL],
+		SSOClientID:          settings[SettingKeySSOClientID],
+		SSORedirectURI:       settings[SettingKeySSORedirectURI],
+		SSOAutoCreateUser:    s.getBoolOrDefault(settings, SettingKeySSOAutoCreateUser, true),
 	}
 
 	// 解析整数类型
@@ -245,9 +285,18 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		result.DefaultBalance = s.cfg.Default.UserBalance
 	}
 
+	// 解析SSO允许的域名（JSON数组）
+	if domainsJSON := settings[SettingKeySSOAllowedDomains]; domainsJSON != "" {
+		var domains []string
+		if err := json.Unmarshal([]byte(domainsJSON), &domains); err == nil {
+			result.SSOAllowedDomains = domains
+		}
+	}
+
 	// 敏感信息直接返回，方便测试连接时使用
 	result.SmtpPassword = settings[SettingKeySmtpPassword]
 	result.TurnstileSecretKey = settings[SettingKeyTurnstileSecretKey]
+	result.SSOClientSecret = settings[SettingKeySSOClientSecret]
 
 	return result
 }
@@ -336,4 +385,52 @@ func (s *SettingService) GetAdminApiKey(ctx context.Context) (string, error) {
 // DeleteAdminApiKey 删除管理员 API Key
 func (s *SettingService) DeleteAdminApiKey(ctx context.Context) error {
 	return s.settingRepo.Delete(ctx, SettingKeyAdminApiKey)
+}
+
+// GetSetting 获取单个配置项
+func (s *SettingService) GetSetting(ctx context.Context, key string) (string, error) {
+	return s.settingRepo.GetValue(ctx, key)
+}
+
+// GetBoolSetting 获取布尔类型配置项
+func (s *SettingService) GetBoolSetting(ctx context.Context, key string) (bool, error) {
+	value, err := s.settingRepo.GetValue(ctx, key)
+	if err != nil {
+		return false, err
+	}
+	return value == "true", nil
+}
+
+// getBoolOrDefault 获取布尔值或默认值
+func (s *SettingService) getBoolOrDefault(settings map[string]string, key string, defaultValue bool) bool {
+	if value, ok := settings[key]; ok {
+		return value == "true"
+	}
+	return defaultValue
+}
+
+// ValidateLoginMethod 验证登录方式是否可用
+func (s *SettingService) ValidateLoginMethod(ctx context.Context, method string) error {
+	ssoEnabled, _ := s.GetBoolSetting(ctx, SettingKeySSOEnabled)
+	pwdEnabled, _ := s.GetBoolSetting(ctx, SettingKeyPasswordLoginEnabled)
+
+	// 系统至少保留一种登录方式
+	if !ssoEnabled && !pwdEnabled {
+		return ErrNoLoginMethodAvailable
+	}
+
+	// 验证请求的登录方式是否可用
+	if method == "password" && !pwdEnabled {
+		return ErrPasswordLoginDisabled
+	}
+	if method == "sso" && !ssoEnabled {
+		return ErrSSOLoginDisabled
+	}
+
+	return nil
+}
+
+// SetSetting 设置单个配置项
+func (s *SettingService) SetSetting(ctx context.Context, key, value string) error {
+	return s.settingRepo.Set(ctx, key, value)
 }

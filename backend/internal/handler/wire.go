@@ -62,6 +62,7 @@ func ProvideHandlers(
 	gatewayHandler *GatewayHandler,
 	openaiGatewayHandler *OpenAIGatewayHandler,
 	settingHandler *SettingHandler,
+	ssoHandler *SSOHandler,
 ) *Handlers {
 	return &Handlers{
 		Auth:          authHandler,
@@ -74,6 +75,7 @@ func ProvideHandlers(
 		Gateway:       gatewayHandler,
 		OpenAIGateway: openaiGatewayHandler,
 		Setting:       settingHandler,
+		SSO:           ssoHandler,
 	}
 }
 
@@ -89,6 +91,7 @@ var ProviderSet = wire.NewSet(
 	NewGatewayHandler,
 	NewOpenAIGatewayHandler,
 	ProvideSettingHandler,
+	NewSSOHandler,
 
 	// Admin handlers
 	admin.NewDashboardHandler,

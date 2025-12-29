@@ -19,6 +19,11 @@ func RegisterAuthRoutes(
 		auth.POST("/register", h.Auth.Register)
 		auth.POST("/login", h.Auth.Login)
 		auth.POST("/send-verify-code", h.Auth.SendVerifyCode)
+
+		// SSO登录路由
+		auth.GET("/sso/config", h.SSO.GetSSOConfig)
+		auth.GET("/sso/authorize", h.SSO.GenerateAuthURL)
+		auth.GET("/sso/callback", h.SSO.Callback)
 	}
 
 	// 公开设置（无需认证）

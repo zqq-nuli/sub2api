@@ -70,6 +70,7 @@ func provideCleanup(
 	oauth *service.OAuthService,
 	openaiOAuth *service.OpenAIOAuthService,
 	geminiOAuth *service.GeminiOAuthService,
+	sso *service.OIDCSSOService,
 ) func() {
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -102,6 +103,10 @@ func provideCleanup(
 			}},
 			{"GeminiOAuthService", func() error {
 				geminiOAuth.Stop()
+				return nil
+			}},
+			{"OIDCSSOService", func() error {
+				sso.Stop()
 				return nil
 			}},
 			{"Redis", func() error {

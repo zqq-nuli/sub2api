@@ -33,6 +33,7 @@ type Handlers struct {
 	Gateway       *GatewayHandler
 	OpenAIGateway *OpenAIGatewayHandler
 	Setting       *SettingHandler
+	SSO           *SSOHandler
 }
 
 // BuildInfo contains build-time information

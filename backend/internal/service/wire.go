@@ -60,6 +60,16 @@ func ProvideDeferredService(accountRepo AccountRepository, timingWheel *TimingWh
 	return svc
 }
 
+// ProvideOIDCSSOService creates and starts OIDCSSOService
+func ProvideOIDCSSOService(
+	settingService *SettingService,
+	userRepo UserRepository,
+	authService *AuthService,
+) *OIDCSSOService {
+	svc := NewOIDCSSOService(settingService, userRepo, authService)
+	return svc
+}
+
 // ProviderSet is the Wire provider set for all services
 var ProviderSet = wire.NewSet(
 	// Core services
@@ -98,4 +108,5 @@ var ProviderSet = wire.NewSet(
 	ProvideTokenRefreshService,
 	ProvideTimingWheelService,
 	ProvideDeferredService,
+	ProvideOIDCSSOService,
 )
