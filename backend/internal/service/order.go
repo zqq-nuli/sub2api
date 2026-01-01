@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 // OrderRepository 订单数据访问接口
@@ -13,15 +11,15 @@ type OrderRepository interface {
 	GetByID(ctx context.Context, id int64) (*Order, error)
 	GetByOrderNo(ctx context.Context, orderNo string) (*Order, error)
 	Update(ctx context.Context, order *Order) error
-	UpdateWithTx(tx *gorm.DB, order *Order) error
 	ListByUser(ctx context.Context, userID int64, page, limit int) ([]*Order, int64, error)
 	AdminList(ctx context.Context, filter *AdminListOrdersFilter) ([]*Order, int64, error)
 	GetStatistics(ctx context.Context) (*OrderStatistics, error)
-	BeginTx(ctx context.Context) *gorm.DB
 	// CountPendingByUser 统计用户未支付订单数量
 	CountPendingByUser(ctx context.Context, userID int64) (int64, error)
 	// MarkExpiredOrders 将过期的pending订单标记为expired
 	MarkExpiredOrders(ctx context.Context) (int64, error)
+	// UpdateOrderAndUserBalance 原子更新订单状态和用户余额
+	UpdateOrderAndUserBalance(ctx context.Context, order *Order, userID int64, balanceDelta float64) error
 }
 
 // AdminListOrdersFilter 管理员查询订单过滤条件
@@ -93,4 +91,15 @@ func (o *Order) IsExpired() bool {
 // CanRefund 是否可以退款
 func (o *Order) CanRefund() bool {
 	return o.IsPaid()
+}
+
+// OrderStatistics 订单统计信息
+type OrderStatistics struct {
+	TotalOrders   int64
+	PendingOrders int64
+	PaidOrders    int64
+	FailedOrders  int64
+	ExpiredOrders int64
+	TotalAmount   float64 // 总成交金额（人民币）
+	TotalBalance  float64 // 总充值余额（美元）
 }

@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/apikey"
 	"github.com/Wei-Shaw/sub2api/ent/group"
+	"github.com/Wei-Shaw/sub2api/ent/order"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
 	"github.com/Wei-Shaw/sub2api/ent/user"
@@ -166,6 +167,34 @@ func (_c *UserCreate) SetNillableNotes(v *string) *UserCreate {
 	return _c
 }
 
+// SetAvatar sets the "avatar" field.
+func (_c *UserCreate) SetAvatar(v string) *UserCreate {
+	_c.mutation.SetAvatar(v)
+	return _c
+}
+
+// SetNillableAvatar sets the "avatar" field if the given value is not nil.
+func (_c *UserCreate) SetNillableAvatar(v *string) *UserCreate {
+	if v != nil {
+		_c.SetAvatar(*v)
+	}
+	return _c
+}
+
+// SetSSOData sets the "sso_data" field.
+func (_c *UserCreate) SetSSOData(v string) *UserCreate {
+	_c.mutation.SetSSOData(v)
+	return _c
+}
+
+// SetNillableSSOData sets the "sso_data" field if the given value is not nil.
+func (_c *UserCreate) SetNillableSSOData(v *string) *UserCreate {
+	if v != nil {
+		_c.SetSSOData(*v)
+	}
+	return _c
+}
+
 // AddAPIKeyIDs adds the "api_keys" edge to the ApiKey entity by IDs.
 func (_c *UserCreate) AddAPIKeyIDs(ids ...int64) *UserCreate {
 	_c.mutation.AddAPIKeyIDs(ids...)
@@ -271,6 +300,21 @@ func (_c *UserCreate) AddAttributeValues(v ...*UserAttributeValue) *UserCreate {
 	return _c.AddAttributeValueIDs(ids...)
 }
 
+// AddOrderIDs adds the "orders" edge to the Order entity by IDs.
+func (_c *UserCreate) AddOrderIDs(ids ...int64) *UserCreate {
+	_c.mutation.AddOrderIDs(ids...)
+	return _c
+}
+
+// AddOrders adds the "orders" edges to the Order entity.
+func (_c *UserCreate) AddOrders(v ...*Order) *UserCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddOrderIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_c *UserCreate) Mutation() *UserMutation {
 	return _c.mutation
@@ -346,6 +390,14 @@ func (_c *UserCreate) defaults() error {
 		v := user.DefaultNotes
 		_c.mutation.SetNotes(v)
 	}
+	if _, ok := _c.mutation.Avatar(); !ok {
+		v := user.DefaultAvatar
+		_c.mutation.SetAvatar(v)
+	}
+	if _, ok := _c.mutation.SSOData(); !ok {
+		v := user.DefaultSSOData
+		_c.mutation.SetSSOData(v)
+	}
 	return nil
 }
 
@@ -405,6 +457,17 @@ func (_c *UserCreate) check() error {
 	}
 	if _, ok := _c.mutation.Notes(); !ok {
 		return &ValidationError{Name: "notes", err: errors.New(`ent: missing required field "User.notes"`)}
+	}
+	if _, ok := _c.mutation.Avatar(); !ok {
+		return &ValidationError{Name: "avatar", err: errors.New(`ent: missing required field "User.avatar"`)}
+	}
+	if v, ok := _c.mutation.Avatar(); ok {
+		if err := user.AvatarValidator(v); err != nil {
+			return &ValidationError{Name: "avatar", err: fmt.Errorf(`ent: validator failed for field "User.avatar": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.SSOData(); !ok {
+		return &ValidationError{Name: "sso_data", err: errors.New(`ent: missing required field "User.sso_data"`)}
 	}
 	return nil
 }
@@ -476,6 +539,14 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(user.FieldNotes, field.TypeString, value)
 		_node.Notes = value
+	}
+	if value, ok := _c.mutation.Avatar(); ok {
+		_spec.SetField(user.FieldAvatar, field.TypeString, value)
+		_node.Avatar = value
+	}
+	if value, ok := _c.mutation.SSOData(); ok {
+		_spec.SetField(user.FieldSSOData, field.TypeString, value)
+		_node.SSOData = value
 	}
 	if nodes := _c.mutation.APIKeysIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -586,6 +657,22 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(userattributevalue.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.OrdersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrdersTable,
+			Columns: []string{user.OrdersColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -780,6 +867,30 @@ func (u *UserUpsert) SetNotes(v string) *UserUpsert {
 // UpdateNotes sets the "notes" field to the value that was provided on create.
 func (u *UserUpsert) UpdateNotes() *UserUpsert {
 	u.SetExcluded(user.FieldNotes)
+	return u
+}
+
+// SetAvatar sets the "avatar" field.
+func (u *UserUpsert) SetAvatar(v string) *UserUpsert {
+	u.Set(user.FieldAvatar, v)
+	return u
+}
+
+// UpdateAvatar sets the "avatar" field to the value that was provided on create.
+func (u *UserUpsert) UpdateAvatar() *UserUpsert {
+	u.SetExcluded(user.FieldAvatar)
+	return u
+}
+
+// SetSSOData sets the "sso_data" field.
+func (u *UserUpsert) SetSSOData(v string) *UserUpsert {
+	u.Set(user.FieldSSOData, v)
+	return u
+}
+
+// UpdateSSOData sets the "sso_data" field to the value that was provided on create.
+func (u *UserUpsert) UpdateSSOData() *UserUpsert {
+	u.SetExcluded(user.FieldSSOData)
 	return u
 }
 
@@ -986,6 +1097,34 @@ func (u *UserUpsertOne) SetNotes(v string) *UserUpsertOne {
 func (u *UserUpsertOne) UpdateNotes() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetAvatar sets the "avatar" field.
+func (u *UserUpsertOne) SetAvatar(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetAvatar(v)
+	})
+}
+
+// UpdateAvatar sets the "avatar" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateAvatar() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateAvatar()
+	})
+}
+
+// SetSSOData sets the "sso_data" field.
+func (u *UserUpsertOne) SetSSOData(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetSSOData(v)
+	})
+}
+
+// UpdateSSOData sets the "sso_data" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateSSOData() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateSSOData()
 	})
 }
 
@@ -1358,6 +1497,34 @@ func (u *UserUpsertBulk) SetNotes(v string) *UserUpsertBulk {
 func (u *UserUpsertBulk) UpdateNotes() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetAvatar sets the "avatar" field.
+func (u *UserUpsertBulk) SetAvatar(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetAvatar(v)
+	})
+}
+
+// UpdateAvatar sets the "avatar" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateAvatar() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateAvatar()
+	})
+}
+
+// SetSSOData sets the "sso_data" field.
+func (u *UserUpsertBulk) SetSSOData(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetSSOData(v)
+	})
+}
+
+// UpdateSSOData sets the "sso_data" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateSSOData() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateSSOData()
 	})
 }
 

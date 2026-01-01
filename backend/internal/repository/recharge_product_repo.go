@@ -2,133 +2,126 @@ package repository
 
 import (
 	"context"
-	"time"
 
+	dbent "github.com/Wei-Shaw/sub2api/ent"
+	dbrechargeproduct "github.com/Wei-Shaw/sub2api/ent/rechargeproduct"
+	apperrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/service"
-	"gorm.io/gorm"
+
+	"entgo.io/ent/dialect/sql"
 )
 
-// rechargeProductModel GORM数据库模型
-type rechargeProductModel struct {
-	ID            int64     `gorm:"primaryKey"`
-	Name          string    `gorm:"size:255;not null"`
-	Amount        float64   `gorm:"type:decimal(20,2);not null"`
-	Balance       float64   `gorm:"type:decimal(20,8);not null"`
-	BonusBalance  float64   `gorm:"type:decimal(20,8);default:0"`
-	Description   string    `gorm:"type:text"`
-	SortOrder     int       `gorm:"index:idx_products_status_sort;default:0"`
-	IsHot         bool      `gorm:"default:false"`
-	DiscountLabel string    `gorm:"size:50"`
-	Status        string    `gorm:"index:idx_products_status_sort;size:20;default:'active';not null"`
-	CreatedAt     time.Time `gorm:"not null"`
-	UpdatedAt     time.Time `gorm:"not null"`
-}
-
-func (rechargeProductModel) TableName() string {
-	return "recharge_products"
-}
-
 type rechargeProductRepository struct {
-	db *gorm.DB
+	client *dbent.Client
 }
 
 // NewRechargeProductRepository 创建充值套餐Repository
-func NewRechargeProductRepository(db *gorm.DB) service.RechargeProductRepository {
-	return &rechargeProductRepository{db: db}
+func NewRechargeProductRepository(client *dbent.Client) service.RechargeProductRepository {
+	return &rechargeProductRepository{client: client}
 }
 
 // Create 创建充值套餐
 func (r *rechargeProductRepository) Create(ctx context.Context, product *service.RechargeProduct) error {
-	m := rechargeProductModelFromService(product)
-	if err := r.db.WithContext(ctx).Create(m).Error; err != nil {
+	created, err := r.client.RechargeProduct.Create().
+		SetName(product.Name).
+		SetAmount(product.Amount).
+		SetBalance(product.Balance).
+		SetBonusBalance(product.BonusBalance).
+		SetDescription(product.Description).
+		SetSortOrder(product.SortOrder).
+		SetIsHot(product.IsHot).
+		SetDiscountLabel(product.DiscountLabel).
+		SetStatus(product.Status).
+		Save(ctx)
+	if err != nil {
 		return err
 	}
-	product.ID = m.ID
+	product.ID = created.ID
+	product.CreatedAt = created.CreatedAt
+	product.UpdatedAt = created.UpdatedAt
 	return nil
 }
 
 // GetByID 根据ID获取套餐
 func (r *rechargeProductRepository) GetByID(ctx context.Context, id int64) (*service.RechargeProduct, error) {
-	var m rechargeProductModel
-	if err := r.db.WithContext(ctx).First(&m, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, service.ErrProductNotFound
-		}
-		return nil, err
+	m, err := r.client.RechargeProduct.Query().
+		Where(dbrechargeproduct.IDEQ(id)).
+		Only(ctx)
+	if err != nil {
+		return nil, translateProductError(err)
 	}
-	return rechargeProductModelToService(&m), nil
+	return rechargeProductEntityToService(m), nil
 }
 
 // Update 更新充值套餐
 func (r *rechargeProductRepository) Update(ctx context.Context, product *service.RechargeProduct) error {
-	m := rechargeProductModelFromService(product)
-	return r.db.WithContext(ctx).Save(m).Error
+	_, err := r.client.RechargeProduct.UpdateOneID(product.ID).
+		SetName(product.Name).
+		SetAmount(product.Amount).
+		SetBalance(product.Balance).
+		SetBonusBalance(product.BonusBalance).
+		SetDescription(product.Description).
+		SetSortOrder(product.SortOrder).
+		SetIsHot(product.IsHot).
+		SetDiscountLabel(product.DiscountLabel).
+		SetStatus(product.Status).
+		Save(ctx)
+	return err
 }
 
 // Delete 删除充值套餐（硬删除）
 func (r *rechargeProductRepository) Delete(ctx context.Context, id int64) error {
-	return r.db.WithContext(ctx).
-		Delete(&rechargeProductModel{}, id).Error
+	return r.client.RechargeProduct.DeleteOneID(id).Exec(ctx)
 }
 
 // ListActive 获取启用的套餐列表（按sort_order排序）
 func (r *rechargeProductRepository) ListActive(ctx context.Context) ([]*service.RechargeProduct, error) {
-	var models []rechargeProductModel
-	if err := r.db.WithContext(ctx).
-		Where("status = ?", service.ProductStatusActive).
-		Order("sort_order ASC, id ASC").
-		Find(&models).Error; err != nil {
+	products, err := r.client.RechargeProduct.Query().
+		Where(dbrechargeproduct.StatusEQ(service.ProductStatusActive)).
+		Order(dbrechargeproduct.BySortOrder(sql.OrderAsc()), dbrechargeproduct.ByID(sql.OrderAsc())).
+		All(ctx)
+	if err != nil {
 		return nil, err
 	}
 
-	products := make([]*service.RechargeProduct, len(models))
-	for i, m := range models {
-		products[i] = rechargeProductModelToService(&m)
+	result := make([]*service.RechargeProduct, len(products))
+	for i, m := range products {
+		result[i] = rechargeProductEntityToService(m)
 	}
 
-	return products, nil
+	return result, nil
 }
 
 // ListAll 获取所有套餐列表（管理员）
 func (r *rechargeProductRepository) ListAll(ctx context.Context) ([]*service.RechargeProduct, error) {
-	var models []rechargeProductModel
-	if err := r.db.WithContext(ctx).
-		Order("sort_order ASC, id ASC").
-		Find(&models).Error; err != nil {
+	products, err := r.client.RechargeProduct.Query().
+		Order(dbrechargeproduct.BySortOrder(sql.OrderAsc()), dbrechargeproduct.ByID(sql.OrderAsc())).
+		All(ctx)
+	if err != nil {
 		return nil, err
 	}
 
-	products := make([]*service.RechargeProduct, len(models))
-	for i, m := range models {
-		products[i] = rechargeProductModelToService(&m)
+	result := make([]*service.RechargeProduct, len(products))
+	for i, m := range products {
+		result[i] = rechargeProductEntityToService(m)
 	}
 
-	return products, nil
+	return result, nil
 }
 
-// rechargeProductModelFromService 从Service对象转换为GORM模型
-func rechargeProductModelFromService(p *service.RechargeProduct) *rechargeProductModel {
-	if p == nil {
+// translateProductError 转换 Ent 错误为应用错误
+func translateProductError(err error) error {
+	if err == nil {
 		return nil
 	}
-	return &rechargeProductModel{
-		ID:            p.ID,
-		Name:          p.Name,
-		Amount:        p.Amount,
-		Balance:       p.Balance,
-		BonusBalance:  p.BonusBalance,
-		Description:   p.Description,
-		SortOrder:     p.SortOrder,
-		IsHot:         p.IsHot,
-		DiscountLabel: p.DiscountLabel,
-		Status:        p.Status,
-		CreatedAt:     p.CreatedAt,
-		UpdatedAt:     p.UpdatedAt,
+	if dbent.IsNotFound(err) {
+		return apperrors.NotFound("PRODUCT_NOT_FOUND", "product not found")
 	}
+	return err
 }
 
-// rechargeProductModelToService 从GORM模型转换为Service对象
-func rechargeProductModelToService(m *rechargeProductModel) *service.RechargeProduct {
+// rechargeProductEntityToService 从Ent实体转换为Service对象
+func rechargeProductEntityToService(m *dbent.RechargeProduct) *service.RechargeProduct {
 	if m == nil {
 		return nil
 	}

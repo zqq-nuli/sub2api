@@ -16,7 +16,9 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/accountgroup"
 	"github.com/Wei-Shaw/sub2api/ent/apikey"
 	"github.com/Wei-Shaw/sub2api/ent/group"
+	"github.com/Wei-Shaw/sub2api/ent/order"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
+	"github.com/Wei-Shaw/sub2api/ent/rechargeproduct"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	"github.com/Wei-Shaw/sub2api/ent/setting"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
@@ -89,7 +91,9 @@ func checkColumn(t, c string) error {
 			accountgroup.Table:            accountgroup.ValidColumn,
 			apikey.Table:                  apikey.ValidColumn,
 			group.Table:                   group.ValidColumn,
+			order.Table:                   order.ValidColumn,
 			proxy.Table:                   proxy.ValidColumn,
+			rechargeproduct.Table:         rechargeproduct.ValidColumn,
 			redeemcode.Table:              redeemcode.ValidColumn,
 			setting.Table:                 setting.ValidColumn,
 			usagelog.Table:                usagelog.ValidColumn,

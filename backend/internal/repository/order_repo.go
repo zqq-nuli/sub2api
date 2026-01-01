@@ -2,178 +2,208 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	dbent "github.com/Wei-Shaw/sub2api/ent"
+	dborder "github.com/Wei-Shaw/sub2api/ent/order"
+	dbuser "github.com/Wei-Shaw/sub2api/ent/user"
+	apperrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/service"
-	"gorm.io/gorm"
+
+	"entgo.io/ent/dialect/sql"
 )
 
-// orderModel GORM数据库模型
-type orderModel struct {
-	ID             int64      `gorm:"primaryKey"`
-	OrderNo        string     `gorm:"uniqueIndex;size:32;not null"`
-	UserID         int64      `gorm:"index:idx_orders_user_id;not null"`
-	ProductID      *int64     `gorm:"index"`
-	ProductName    string     `gorm:"size:255;not null"`
-	Amount         float64    `gorm:"type:decimal(20,2);not null"` // 人民币金额
-	BonusAmount    float64    `gorm:"type:decimal(20,8);default:0"`
-	ActualAmount   float64    `gorm:"type:decimal(20,8);not null"` // 美元金额
-	PaymentMethod  string     `gorm:"size:50;not null"`
-	PaymentGateway string     `gorm:"size:50;default:'epay';not null"`
-	TradeNo        string     `gorm:"size:255"`
-	Status         string     `gorm:"index:idx_orders_status;size:20;default:'pending';not null"`
-	CreatedAt      time.Time  `gorm:"index:idx_orders_created_at;not null"`
-	PaidAt         *time.Time
-	ExpiredAt      time.Time  `gorm:"not null"`
-	Notes          string  `gorm:"type:text"`
-	CallbackData   *string `gorm:"type:jsonb"`
-
-	// 关联
-	User    *userModel            `gorm:"foreignKey:UserID;references:ID"`
-	Product *rechargeProductModel `gorm:"foreignKey:ProductID;references:ID"`
-}
-
-func (orderModel) TableName() string {
-	return "orders"
-}
-
 type orderRepository struct {
-	db *gorm.DB
+	client *dbent.Client
 }
 
 // NewOrderRepository 创建订单Repository
-func NewOrderRepository(db *gorm.DB) service.OrderRepository {
-	return &orderRepository{db: db}
+func NewOrderRepository(client *dbent.Client) service.OrderRepository {
+	return &orderRepository{client: client}
 }
 
 // Create 创建订单
 func (r *orderRepository) Create(ctx context.Context, order *service.Order) error {
-	m := orderModelFromService(order)
-	if err := r.db.WithContext(ctx).Create(m).Error; err != nil {
+	builder := r.client.Order.Create().
+		SetOrderNo(order.OrderNo).
+		SetUserID(order.UserID).
+		SetProductName(order.ProductName).
+		SetAmount(order.Amount).
+		SetBonusAmount(order.BonusAmount).
+		SetActualAmount(order.ActualAmount).
+		SetPaymentMethod(order.PaymentMethod).
+		SetPaymentGateway(order.PaymentGateway).
+		SetStatus(order.Status).
+		SetCreatedAt(order.CreatedAt).
+		SetExpiredAt(order.ExpiredAt).
+		SetNotes(order.Notes)
+
+	if order.ProductID != nil {
+		builder.SetProductID(*order.ProductID)
+	}
+	if order.TradeNo != "" {
+		builder.SetTradeNo(order.TradeNo)
+	}
+	if order.CallbackData != "" {
+		builder.SetCallbackData(order.CallbackData)
+	}
+	if order.PaidAt != nil {
+		builder.SetPaidAt(*order.PaidAt)
+	}
+
+	created, err := builder.Save(ctx)
+	if err != nil {
 		return err
 	}
-	order.ID = m.ID
+	order.ID = created.ID
 	return nil
 }
 
 // GetByID 根据ID获取订单
 func (r *orderRepository) GetByID(ctx context.Context, id int64) (*service.Order, error) {
-	var m orderModel
-	if err := r.db.WithContext(ctx).
-		Preload("User").
-		Preload("Product").
-		First(&m, id).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, service.ErrOrderNotFound
-		}
-		return nil, err
+	m, err := r.client.Order.Query().
+		Where(dborder.IDEQ(id)).
+		WithUser().
+		WithProduct().
+		Only(ctx)
+	if err != nil {
+		return nil, translateOrderError(err)
 	}
-	return orderModelToService(&m), nil
+	return orderEntityToService(m), nil
 }
 
 // GetByOrderNo 根据订单号获取订单
 func (r *orderRepository) GetByOrderNo(ctx context.Context, orderNo string) (*service.Order, error) {
-	var m orderModel
-	if err := r.db.WithContext(ctx).
-		Preload("User").
-		Preload("Product").
-		Where("order_no = ?", orderNo).
-		First(&m).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, service.ErrOrderNotFound
-		}
-		return nil, err
+	m, err := r.client.Order.Query().
+		Where(dborder.OrderNoEQ(orderNo)).
+		WithUser().
+		WithProduct().
+		Only(ctx)
+	if err != nil {
+		return nil, translateOrderError(err)
 	}
-	return orderModelToService(&m), nil
+	return orderEntityToService(m), nil
 }
 
 // Update 更新订单
 func (r *orderRepository) Update(ctx context.Context, order *service.Order) error {
-	m := orderModelFromService(order)
-	return r.db.WithContext(ctx).Save(m).Error
-}
+	builder := r.client.Order.UpdateOneID(order.ID).
+		SetOrderNo(order.OrderNo).
+		SetUserID(order.UserID).
+		SetProductName(order.ProductName).
+		SetAmount(order.Amount).
+		SetBonusAmount(order.BonusAmount).
+		SetActualAmount(order.ActualAmount).
+		SetPaymentMethod(order.PaymentMethod).
+		SetPaymentGateway(order.PaymentGateway).
+		SetStatus(order.Status).
+		SetExpiredAt(order.ExpiredAt).
+		SetNotes(order.Notes)
 
-// UpdateWithTx 使用事务更新订单
-func (r *orderRepository) UpdateWithTx(tx *gorm.DB, order *service.Order) error {
-	m := orderModelFromService(order)
-	return tx.Save(m).Error
+	if order.ProductID != nil {
+		builder.SetProductID(*order.ProductID)
+	} else {
+		builder.ClearProductID()
+	}
+	if order.TradeNo != "" {
+		builder.SetTradeNo(order.TradeNo)
+	} else {
+		builder.ClearTradeNo()
+	}
+	if order.CallbackData != "" {
+		builder.SetCallbackData(order.CallbackData)
+	} else {
+		builder.ClearCallbackData()
+	}
+	if order.PaidAt != nil {
+		builder.SetPaidAt(*order.PaidAt)
+	} else {
+		builder.ClearPaidAt()
+	}
+
+	_, err := builder.Save(ctx)
+	return err
 }
 
 // ListByUser 获取用户订单列表
 func (r *orderRepository) ListByUser(ctx context.Context, userID int64, page, limit int) ([]*service.Order, int64, error) {
-	var models []orderModel
-	var total int64
-
-	query := r.db.WithContext(ctx).
-		Where("user_id = ?", userID).
-		Order("created_at DESC")
-
 	// 查询总数
-	if err := query.Model(&orderModel{}).Count(&total).Error; err != nil {
+	total, err := r.client.Order.Query().
+		Where(dborder.UserIDEQ(userID)).
+		Count(ctx)
+	if err != nil {
 		return nil, 0, err
 	}
 
 	// 分页查询
 	offset := (page - 1) * limit
-	if err := query.Offset(offset).Limit(limit).
-		Preload("Product").
-		Find(&models).Error; err != nil {
+	orders, err := r.client.Order.Query().
+		Where(dborder.UserIDEQ(userID)).
+		WithProduct().
+		Order(dborder.ByCreatedAt(sql.OrderDesc())).
+		Offset(offset).
+		Limit(limit).
+		All(ctx)
+	if err != nil {
 		return nil, 0, err
 	}
 
-	orders := make([]*service.Order, len(models))
-	for i, m := range models {
-		orders[i] = orderModelToService(&m)
+	result := make([]*service.Order, len(orders))
+	for i, m := range orders {
+		result[i] = orderEntityToService(m)
 	}
 
-	return orders, total, nil
+	return result, int64(total), nil
 }
 
 // AdminList 管理员查询订单列表（支持灵活筛选）
 func (r *orderRepository) AdminList(ctx context.Context, filter *service.AdminListOrdersFilter) ([]*service.Order, int64, error) {
-	var models []orderModel
-	var total int64
-
-	query := r.db.WithContext(ctx).Preload("User").Preload("Product")
+	query := r.client.Order.Query().WithUser().WithProduct()
 
 	// 应用过滤条件
 	if filter.UserID != nil {
-		query = query.Where("user_id = ?", *filter.UserID)
+		query = query.Where(dborder.UserIDEQ(*filter.UserID))
 	}
 	if filter.Status != nil {
-		query = query.Where("status = ?", *filter.Status)
+		query = query.Where(dborder.StatusEQ(*filter.Status))
 	}
 	if filter.PaymentMethod != nil {
-		query = query.Where("payment_method = ?", *filter.PaymentMethod)
+		query = query.Where(dborder.PaymentMethodEQ(*filter.PaymentMethod))
 	}
 	if filter.OrderNo != nil {
-		query = query.Where("order_no LIKE ?", "%"+*filter.OrderNo+"%")
+		query = query.Where(dborder.OrderNoContains(*filter.OrderNo))
 	}
 	if filter.StartDate != nil {
-		query = query.Where("created_at >= ?", *filter.StartDate)
+		query = query.Where(dborder.CreatedAtGTE(*filter.StartDate))
 	}
 	if filter.EndDate != nil {
-		query = query.Where("created_at <= ?", *filter.EndDate)
+		query = query.Where(dborder.CreatedAtLTE(*filter.EndDate))
 	}
 
 	// 查询总数
-	if err := query.Model(&orderModel{}).Count(&total).Error; err != nil {
+	total, err := query.Clone().Count(ctx)
+	if err != nil {
 		return nil, 0, err
 	}
 
 	// 分页查询
 	offset := (filter.Page - 1) * filter.Limit
-	if err := query.Order("created_at DESC").Offset(offset).Limit(filter.Limit).
-		Find(&models).Error; err != nil {
+	orders, err := query.
+		Order(dborder.ByCreatedAt(sql.OrderDesc())).
+		Offset(offset).
+		Limit(filter.Limit).
+		All(ctx)
+	if err != nil {
 		return nil, 0, err
 	}
 
-	orders := make([]*service.Order, len(models))
-	for i, m := range models {
-		orders[i] = orderModelToService(&m)
+	result := make([]*service.Order, len(orders))
+	for i, m := range orders {
+		result[i] = orderEntityToService(m)
 	}
 
-	return orders, total, nil
+	return result, int64(total), nil
 }
 
 // GetStatistics 获取订单统计信息
@@ -181,108 +211,129 @@ func (r *orderRepository) GetStatistics(ctx context.Context) (*service.OrderStat
 	stats := &service.OrderStatistics{}
 
 	// 总订单数
-	if err := r.db.WithContext(ctx).Model(&orderModel{}).Count(&stats.TotalOrders).Error; err != nil {
+	total, err := r.client.Order.Query().Count(ctx)
+	if err != nil {
 		return nil, err
 	}
+	stats.TotalOrders = int64(total)
 
 	// 各状态订单数
-	statusCounts := []struct {
-		Status string
-		Count  int64
-	}{}
-	if err := r.db.WithContext(ctx).Model(&orderModel{}).
-		Select("status, COUNT(*) as count").
-		Group("status").
-		Scan(&statusCounts).Error; err != nil {
+	pendingCount, _ := r.client.Order.Query().Where(dborder.StatusEQ(service.OrderStatusPending)).Count(ctx)
+	paidCount, _ := r.client.Order.Query().Where(dborder.StatusEQ(service.OrderStatusPaid)).Count(ctx)
+	failedCount, _ := r.client.Order.Query().Where(dborder.StatusEQ(service.OrderStatusFailed)).Count(ctx)
+	expiredCount, _ := r.client.Order.Query().Where(dborder.StatusEQ(service.OrderStatusExpired)).Count(ctx)
+
+	stats.PendingOrders = int64(pendingCount)
+	stats.PaidOrders = int64(paidCount)
+	stats.FailedOrders = int64(failedCount)
+	stats.ExpiredOrders = int64(expiredCount)
+
+	// 总成交金额和余额
+	paidOrders, err := r.client.Order.Query().
+		Where(dborder.StatusEQ(service.OrderStatusPaid)).
+		All(ctx)
+	if err != nil {
 		return nil, err
 	}
 
-	for _, sc := range statusCounts {
-		switch sc.Status {
-		case service.OrderStatusPending:
-			stats.PendingOrders = sc.Count
-		case service.OrderStatusPaid:
-			stats.PaidOrders = sc.Count
-		case service.OrderStatusFailed:
-			stats.FailedOrders = sc.Count
-		case service.OrderStatusExpired:
-			stats.ExpiredOrders = sc.Count
-		}
-	}
-
-	// 总成交金额（已支付订单的人民币金额）
-	if err := r.db.WithContext(ctx).Model(&orderModel{}).
-		Where("status = ?", service.OrderStatusPaid).
-		Select("COALESCE(SUM(amount), 0) as total").
-		Scan(&stats.TotalAmount).Error; err != nil {
-		return nil, err
-	}
-
-	// 总充值余额（已支付订单的美元余额）
-	if err := r.db.WithContext(ctx).Model(&orderModel{}).
-		Where("status = ?", service.OrderStatusPaid).
-		Select("COALESCE(SUM(actual_amount), 0) as total").
-		Scan(&stats.TotalBalance).Error; err != nil {
-		return nil, err
+	for _, o := range paidOrders {
+		stats.TotalAmount += o.Amount
+		stats.TotalBalance += o.ActualAmount
 	}
 
 	return stats, nil
 }
 
-// BeginTx 开始数据库事务
-func (r *orderRepository) BeginTx(ctx context.Context) *gorm.DB {
-	return r.db.WithContext(ctx).Begin()
-}
-
 // CountPendingByUser 统计用户未支付订单数量
 func (r *orderRepository) CountPendingByUser(ctx context.Context, userID int64) (int64, error) {
-	var count int64
-	err := r.db.WithContext(ctx).Model(&orderModel{}).
-		Where("user_id = ? AND status = ?", userID, service.OrderStatusPending).
-		Count(&count).Error
-	return count, err
+	count, err := r.client.Order.Query().
+		Where(
+			dborder.UserIDEQ(userID),
+			dborder.StatusEQ(service.OrderStatusPending),
+		).
+		Count(ctx)
+	return int64(count), err
 }
 
 // MarkExpiredOrders 将过期的pending订单标记为expired
 func (r *orderRepository) MarkExpiredOrders(ctx context.Context) (int64, error) {
-	result := r.db.WithContext(ctx).Model(&orderModel{}).
-		Where("status = ? AND expired_at < ?", service.OrderStatusPending, time.Now()).
-		Update("status", service.OrderStatusExpired)
-	return result.RowsAffected, result.Error
+	affected, err := r.client.Order.Update().
+		Where(
+			dborder.StatusEQ(service.OrderStatusPending),
+			dborder.ExpiredAtLT(time.Now()),
+		).
+		SetStatus(service.OrderStatusExpired).
+		Save(ctx)
+	return int64(affected), err
 }
 
-// orderModelFromService 从Service对象转换为GORM模型
-func orderModelFromService(o *service.Order) *orderModel {
-	if o == nil {
+// UpdateOrderAndUserBalance 原子更新订单状态和用户余额
+func (r *orderRepository) UpdateOrderAndUserBalance(ctx context.Context, order *service.Order, userID int64, balanceDelta float64) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+
+	// 确保事务正确处理
+	defer func() {
+		if v := recover(); v != nil {
+			_ = tx.Rollback()
+			panic(v)
+		}
+	}()
+
+	// 更新订单
+	orderBuilder := tx.Order.UpdateOneID(order.ID).
+		SetStatus(order.Status).
+		SetNotes(order.Notes)
+
+	if order.TradeNo != "" {
+		orderBuilder.SetTradeNo(order.TradeNo)
+	}
+	if order.CallbackData != "" {
+		orderBuilder.SetCallbackData(order.CallbackData)
+	}
+	if order.PaidAt != nil {
+		orderBuilder.SetPaidAt(*order.PaidAt)
+	}
+
+	if _, err := orderBuilder.Save(ctx); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	// 更新用户余额
+	if balanceDelta != 0 {
+		// 获取当前余额
+		user, err := tx.User.Query().Where(dbuser.IDEQ(userID)).Only(ctx)
+		if err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+
+		newBalance := user.Balance + balanceDelta
+		if _, err := tx.User.UpdateOneID(userID).SetBalance(newBalance).Save(ctx); err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+// translateOrderError 转换 Ent 错误为应用错误
+func translateOrderError(err error) error {
+	if err == nil {
 		return nil
 	}
-	m := &orderModel{
-		ID:             o.ID,
-		OrderNo:        o.OrderNo,
-		UserID:         o.UserID,
-		ProductID:      o.ProductID,
-		ProductName:    o.ProductName,
-		Amount:         o.Amount,
-		BonusAmount:    o.BonusAmount,
-		ActualAmount:   o.ActualAmount,
-		PaymentMethod:  o.PaymentMethod,
-		PaymentGateway: o.PaymentGateway,
-		TradeNo:        o.TradeNo,
-		Status:         o.Status,
-		CreatedAt:      o.CreatedAt,
-		PaidAt:         o.PaidAt,
-		ExpiredAt:      o.ExpiredAt,
-		Notes:          o.Notes,
+	if dbent.IsNotFound(err) {
+		return apperrors.NotFound("ORDER_NOT_FOUND", "order not found")
 	}
-	// CallbackData: 空字符串转为 nil（SQL NULL）
-	if o.CallbackData != "" {
-		m.CallbackData = &o.CallbackData
-	}
-	return m
+	return err
 }
 
-// orderModelToService 从GORM模型转换为Service对象
-func orderModelToService(m *orderModel) *service.Order {
+// orderEntityToService 从Ent实体转换为Service对象
+func orderEntityToService(m *dbent.Order) *service.Order {
 	if m == nil {
 		return nil
 	}
@@ -298,25 +349,30 @@ func orderModelToService(m *orderModel) *service.Order {
 		ActualAmount:   m.ActualAmount,
 		PaymentMethod:  m.PaymentMethod,
 		PaymentGateway: m.PaymentGateway,
-		TradeNo:        m.TradeNo,
 		Status:         m.Status,
 		CreatedAt:      m.CreatedAt,
 		PaidAt:         m.PaidAt,
 		ExpiredAt:      m.ExpiredAt,
 		Notes:          m.Notes,
 	}
-	// CallbackData: nil 转为空字符串
+
+	if m.TradeNo != nil {
+		order.TradeNo = *m.TradeNo
+	}
 	if m.CallbackData != nil {
 		order.CallbackData = *m.CallbackData
 	}
 
 	// 关联对象
-	if m.User != nil {
-		order.User = userModelToService(m.User)
+	if m.Edges.User != nil {
+		order.User = userEntityToService(m.Edges.User)
 	}
-	if m.Product != nil {
-		order.Product = rechargeProductModelToService(m.Product)
+	if m.Edges.Product != nil {
+		order.Product = rechargeProductEntityToService(m.Edges.Product)
 	}
 
 	return order
 }
+
+// ErrOrderNotFound 订单未找到错误（供外部使用）
+var ErrOrderNotFound = errors.New("order not found")

@@ -249,6 +249,63 @@ var (
 			},
 		},
 	}
+	// OrdersColumns holds the columns for the "orders" table.
+	OrdersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "order_no", Type: field.TypeString, Unique: true, Size: 32},
+		{Name: "product_name", Type: field.TypeString, Size: 255},
+		{Name: "amount", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(20,2)"}},
+		{Name: "bonus_amount", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
+		{Name: "actual_amount", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
+		{Name: "payment_method", Type: field.TypeString, Size: 50},
+		{Name: "payment_gateway", Type: field.TypeString, Size: 50, Default: "epay"},
+		{Name: "trade_no", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "status", Type: field.TypeString, Size: 20, Default: "pending"},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "paid_at", Type: field.TypeTime, Nullable: true},
+		{Name: "expired_at", Type: field.TypeTime},
+		{Name: "notes", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "callback_data", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "product_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "user_id", Type: field.TypeInt64},
+	}
+	// OrdersTable holds the schema information for the "orders" table.
+	OrdersTable = &schema.Table{
+		Name:       "orders",
+		Columns:    OrdersColumns,
+		PrimaryKey: []*schema.Column{OrdersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "orders_recharge_products_orders",
+				Columns:    []*schema.Column{OrdersColumns[15]},
+				RefColumns: []*schema.Column{RechargeProductsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "orders_users_orders",
+				Columns:    []*schema.Column{OrdersColumns[16]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "order_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{OrdersColumns[16]},
+			},
+			{
+				Name:    "order_status",
+				Unique:  false,
+				Columns: []*schema.Column{OrdersColumns[9]},
+			},
+			{
+				Name:    "order_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{OrdersColumns[10]},
+			},
+		},
+	}
 	// ProxiesColumns holds the columns for the "proxies" table.
 	ProxiesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -278,6 +335,34 @@ var (
 				Name:    "proxy_deleted_at",
 				Unique:  false,
 				Columns: []*schema.Column{ProxiesColumns[3]},
+			},
+		},
+	}
+	// RechargeProductsColumns holds the columns for the "recharge_products" table.
+	RechargeProductsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "name", Type: field.TypeString, Size: 255},
+		{Name: "amount", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(20,2)"}},
+		{Name: "balance", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
+		{Name: "bonus_balance", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(20,8)"}},
+		{Name: "description", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "sort_order", Type: field.TypeInt, Default: 0},
+		{Name: "is_hot", Type: field.TypeBool, Default: false},
+		{Name: "discount_label", Type: field.TypeString, Size: 50, Default: ""},
+		{Name: "status", Type: field.TypeString, Size: 20, Default: "active"},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// RechargeProductsTable holds the schema information for the "recharge_products" table.
+	RechargeProductsTable = &schema.Table{
+		Name:       "recharge_products",
+		Columns:    RechargeProductsColumns,
+		PrimaryKey: []*schema.Column{RechargeProductsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rechargeproduct_status_sort_order",
+				Unique:  false,
+				Columns: []*schema.Column{RechargeProductsColumns[9], RechargeProductsColumns[6]},
 			},
 		},
 	}
@@ -478,6 +563,8 @@ var (
 		{Name: "status", Type: field.TypeString, Size: 20, Default: "active"},
 		{Name: "username", Type: field.TypeString, Size: 100, Default: ""},
 		{Name: "notes", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "avatar", Type: field.TypeString, Size: 500, Default: ""},
+		{Name: "sso_data", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -706,7 +793,9 @@ var (
 		AccountGroupsTable,
 		APIKeysTable,
 		GroupsTable,
+		OrdersTable,
 		ProxiesTable,
+		RechargeProductsTable,
 		RedeemCodesTable,
 		SettingsTable,
 		UsageLogsTable,
@@ -736,8 +825,16 @@ func init() {
 	GroupsTable.Annotation = &entsql.Annotation{
 		Table: "groups",
 	}
+	OrdersTable.ForeignKeys[0].RefTable = RechargeProductsTable
+	OrdersTable.ForeignKeys[1].RefTable = UsersTable
+	OrdersTable.Annotation = &entsql.Annotation{
+		Table: "orders",
+	}
 	ProxiesTable.Annotation = &entsql.Annotation{
 		Table: "proxies",
+	}
+	RechargeProductsTable.Annotation = &entsql.Annotation{
+		Table: "recharge_products",
 	}
 	RedeemCodesTable.ForeignKeys[0].RefTable = GroupsTable
 	RedeemCodesTable.ForeignKeys[1].RefTable = UsersTable

@@ -34,7 +34,6 @@ type UserRepository interface {
 	ListWithFilters(ctx context.Context, params pagination.PaginationParams, filters UserListFilters) ([]User, *pagination.PaginationResult, error)
 
 	UpdateBalance(ctx context.Context, id int64, amount float64) error
-	UpdateBalanceWithTx(tx interface{}, id int64, amount float64) error // 事务版本
 	DeductBalance(ctx context.Context, id int64, amount float64) error
 	UpdateConcurrency(ctx context.Context, id int64, amount int) error
 	ExistsByEmail(ctx context.Context, email string) (bool, error)

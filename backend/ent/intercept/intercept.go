@@ -12,8 +12,10 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/accountgroup"
 	"github.com/Wei-Shaw/sub2api/ent/apikey"
 	"github.com/Wei-Shaw/sub2api/ent/group"
+	"github.com/Wei-Shaw/sub2api/ent/order"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
+	"github.com/Wei-Shaw/sub2api/ent/rechargeproduct"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	"github.com/Wei-Shaw/sub2api/ent/setting"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
@@ -188,6 +190,33 @@ func (f TraverseGroup) Traverse(ctx context.Context, q ent.Query) error {
 	return fmt.Errorf("unexpected query type %T. expect *ent.GroupQuery", q)
 }
 
+// The OrderFunc type is an adapter to allow the use of ordinary function as a Querier.
+type OrderFunc func(context.Context, *ent.OrderQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f OrderFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.OrderQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.OrderQuery", q)
+}
+
+// The TraverseOrder type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseOrder func(context.Context, *ent.OrderQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseOrder) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseOrder) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.OrderQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.OrderQuery", q)
+}
+
 // The ProxyFunc type is an adapter to allow the use of ordinary function as a Querier.
 type ProxyFunc func(context.Context, *ent.ProxyQuery) (ent.Value, error)
 
@@ -213,6 +242,33 @@ func (f TraverseProxy) Traverse(ctx context.Context, q ent.Query) error {
 		return f(ctx, q)
 	}
 	return fmt.Errorf("unexpected query type %T. expect *ent.ProxyQuery", q)
+}
+
+// The RechargeProductFunc type is an adapter to allow the use of ordinary function as a Querier.
+type RechargeProductFunc func(context.Context, *ent.RechargeProductQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f RechargeProductFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.RechargeProductQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.RechargeProductQuery", q)
+}
+
+// The TraverseRechargeProduct type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseRechargeProduct func(context.Context, *ent.RechargeProductQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseRechargeProduct) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseRechargeProduct) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.RechargeProductQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.RechargeProductQuery", q)
 }
 
 // The RedeemCodeFunc type is an adapter to allow the use of ordinary function as a Querier.
@@ -442,8 +498,12 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.ApiKeyQuery, predicate.ApiKey, apikey.OrderOption]{typ: ent.TypeApiKey, tq: q}, nil
 	case *ent.GroupQuery:
 		return &query[*ent.GroupQuery, predicate.Group, group.OrderOption]{typ: ent.TypeGroup, tq: q}, nil
+	case *ent.OrderQuery:
+		return &query[*ent.OrderQuery, predicate.Order, order.OrderOption]{typ: ent.TypeOrder, tq: q}, nil
 	case *ent.ProxyQuery:
 		return &query[*ent.ProxyQuery, predicate.Proxy, proxy.OrderOption]{typ: ent.TypeProxy, tq: q}, nil
+	case *ent.RechargeProductQuery:
+		return &query[*ent.RechargeProductQuery, predicate.RechargeProduct, rechargeproduct.OrderOption]{typ: ent.TypeRechargeProduct, tq: q}, nil
 	case *ent.RedeemCodeQuery:
 		return &query[*ent.RedeemCodeQuery, predicate.RedeemCode, redeemcode.OrderOption]{typ: ent.TypeRedeemCode, tq: q}, nil
 	case *ent.SettingQuery:

@@ -219,16 +219,7 @@ func (s *PaymentService) HandlePaymentCallback(ctx context.Context, params map[s
 		return ErrPaymentFailed
 	}
 
-	// 9. 开始数据库事务
-	tx := s.orderRepo.BeginTx(ctx)
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
-		}
-	}()
-
-	// 更新订单状态
+	// 9. 更新订单状态和用户余额（原子操作）
 	now := time.Now()
 	order.Status = OrderStatusPaid
 	order.TradeNo = params["trade_no"]
@@ -236,22 +227,9 @@ func (s *PaymentService) HandlePaymentCallback(ctx context.Context, params map[s
 	callbackJSON, _ := json.Marshal(params)
 	order.CallbackData = string(callbackJSON)
 
-	if err := s.orderRepo.UpdateWithTx(tx, order); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("update order: %w", err)
-	}
-
-	// 10. 增加用户余额（使用同一事务）
-	if err := s.userRepo.UpdateBalanceWithTx(tx, order.UserID, order.ActualAmount); err != nil {
-		tx.Rollback()
-		log.Printf("[Payment] CRITICAL: Order %s balance update failed for user %d: %v", orderNo, order.UserID, err)
-		return fmt.Errorf("update balance: %w", err)
-	}
-
-	// 11. 提交事务
-	if err := tx.Commit().Error; err != nil {
-		log.Printf("[Payment] CRITICAL: Order %s transaction commit failed: %v", orderNo, err)
-		return fmt.Errorf("commit transaction: %w", err)
+	if err := s.orderRepo.UpdateOrderAndUserBalance(ctx, order, order.UserID, order.ActualAmount); err != nil {
+		log.Printf("[Payment] CRITICAL: Order %s update failed: %v", orderNo, err)
+		return fmt.Errorf("update order and balance: %w", err)
 	}
 
 	log.Printf("[Payment] Order %s paid successfully, user %d balance +%.2f USD", orderNo, order.UserID, order.ActualAmount)
@@ -407,38 +385,16 @@ func (s *PaymentService) completeOrderFromUpstream(ctx context.Context, order *O
 		return order, nil
 	}
 
-	// 开始数据库事务
-	tx := s.orderRepo.BeginTx(ctx)
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
-		}
-	}()
-
-	// 更新订单状态
+	// 更新订单状态和用户余额（原子操作）
 	now := time.Now()
 	order.Status = OrderStatusPaid
 	order.TradeNo = upstreamResult.TradeNo
 	order.PaidAt = &now
 	order.Notes = "synced from upstream query"
 
-	if err := s.orderRepo.UpdateWithTx(tx, order); err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("update order: %w", err)
-	}
-
-	// 增加用户余额
-	if err := s.userRepo.UpdateBalanceWithTx(tx, order.UserID, order.ActualAmount); err != nil {
-		tx.Rollback()
-		log.Printf("[Payment] CRITICAL: Order %s balance update failed for user %d: %v", order.OrderNo, order.UserID, err)
-		return nil, fmt.Errorf("update balance: %w", err)
-	}
-
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		log.Printf("[Payment] CRITICAL: Order %s transaction commit failed: %v", order.OrderNo, err)
-		return nil, fmt.Errorf("commit transaction: %w", err)
+	if err := s.orderRepo.UpdateOrderAndUserBalance(ctx, order, order.UserID, order.ActualAmount); err != nil {
+		log.Printf("[Payment] CRITICAL: Order %s update failed: %v", order.OrderNo, err)
+		return nil, fmt.Errorf("update order and balance: %w", err)
 	}
 
 	log.Printf("[Payment] Order %s synced from upstream, user %d balance +%.2f USD", order.OrderNo, order.UserID, order.ActualAmount)

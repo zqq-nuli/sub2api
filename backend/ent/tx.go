@@ -22,8 +22,12 @@ type Tx struct {
 	ApiKey *ApiKeyClient
 	// Group is the client for interacting with the Group builders.
 	Group *GroupClient
+	// Order is the client for interacting with the Order builders.
+	Order *OrderClient
 	// Proxy is the client for interacting with the Proxy builders.
 	Proxy *ProxyClient
+	// RechargeProduct is the client for interacting with the RechargeProduct builders.
+	RechargeProduct *RechargeProductClient
 	// RedeemCode is the client for interacting with the RedeemCode builders.
 	RedeemCode *RedeemCodeClient
 	// Setting is the client for interacting with the Setting builders.
@@ -175,7 +179,9 @@ func (tx *Tx) init() {
 	tx.AccountGroup = NewAccountGroupClient(tx.config)
 	tx.ApiKey = NewApiKeyClient(tx.config)
 	tx.Group = NewGroupClient(tx.config)
+	tx.Order = NewOrderClient(tx.config)
 	tx.Proxy = NewProxyClient(tx.config)
+	tx.RechargeProduct = NewRechargeProductClient(tx.config)
 	tx.RedeemCode = NewRedeemCodeClient(tx.config)
 	tx.Setting = NewSettingClient(tx.config)
 	tx.UsageLog = NewUsageLogClient(tx.config)

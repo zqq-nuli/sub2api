@@ -44,7 +44,8 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	}
 	userRepository := repository.NewUserRepository(client, db)
 	settingRepository := repository.NewSettingRepository(client)
-	settingService := service.NewSettingService(settingRepository, configConfig)
+	cryptoService := service.ProvideCryptoService(configConfig)
+	settingService := service.NewSettingService(settingRepository, configConfig, cryptoService)
 	redisClient := repository.ProvideRedis(configConfig)
 	emailCache := repository.NewEmailCache(redisClient)
 	emailService := service.NewEmailService(settingRepository, emailCache)
@@ -121,7 +122,13 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	userAttributeValueRepository := repository.NewUserAttributeValueRepository(client)
 	userAttributeService := service.NewUserAttributeService(userAttributeDefinitionRepository, userAttributeValueRepository)
 	userAttributeHandler := admin.NewUserAttributeHandler(userAttributeService)
-	adminHandlers := handler.ProvideAdminHandlers(dashboardHandler, adminUserHandler, groupHandler, accountHandler, oAuthHandler, openAIOAuthHandler, geminiOAuthHandler, antigravityOAuthHandler, proxyHandler, adminRedeemHandler, settingHandler, systemHandler, adminSubscriptionHandler, adminUsageHandler, userAttributeHandler)
+	orderRepository := repository.NewOrderRepository(client)
+	orderService := service.NewOrderService(orderRepository, userRepository, billingCacheService)
+	orderHandler := admin.NewOrderHandler(orderService)
+	rechargeProductRepository := repository.NewRechargeProductRepository(client)
+	rechargeProductService := service.NewRechargeProductService(rechargeProductRepository, redisClient)
+	rechargeProductHandler := admin.NewRechargeProductHandler(rechargeProductService)
+	adminHandlers := handler.ProvideAdminHandlers(dashboardHandler, adminUserHandler, groupHandler, accountHandler, oAuthHandler, openAIOAuthHandler, geminiOAuthHandler, antigravityOAuthHandler, proxyHandler, adminRedeemHandler, settingHandler, systemHandler, adminSubscriptionHandler, adminUsageHandler, userAttributeHandler, orderHandler, rechargeProductHandler)
 	pricingRemoteClient := repository.NewPricingRemoteClient()
 	pricingService, err := service.ProvidePricingService(configConfig, pricingRemoteClient)
 	if err != nil {
@@ -138,7 +145,12 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	openAIGatewayService := service.NewOpenAIGatewayService(accountRepository, usageLogRepository, userRepository, userSubscriptionRepository, gatewayCache, configConfig, concurrencyService, billingService, rateLimitService, billingCacheService, httpUpstream, deferredService)
 	openAIGatewayHandler := handler.NewOpenAIGatewayHandler(openAIGatewayService, concurrencyService, billingCacheService)
 	handlerSettingHandler := handler.ProvideSettingHandler(settingService, buildInfo)
-	handlers := handler.ProvideHandlers(authHandler, userHandler, apiKeyHandler, usageHandler, redeemHandler, subscriptionHandler, adminHandlers, gatewayHandler, openAIGatewayHandler, handlerSettingHandler)
+	oidcssoService := service.ProvideOIDCSSOService(settingService, userRepository, authService)
+	ssoHandler := handler.NewSSOHandler(oidcssoService, settingService)
+	paymentService := service.NewPaymentService(orderRepository, userRepository, rechargeProductRepository, settingService, billingCacheService, redisClient)
+	handlerOrderHandler := handler.NewOrderHandler(orderService, paymentService, rechargeProductService)
+	paymentHandler := handler.NewPaymentHandler(paymentService, settingService)
+	handlers := handler.ProvideHandlers(authHandler, userHandler, apiKeyHandler, usageHandler, redeemHandler, subscriptionHandler, adminHandlers, gatewayHandler, openAIGatewayHandler, handlerSettingHandler, ssoHandler, handlerOrderHandler, paymentHandler)
 	jwtAuthMiddleware := middleware.NewJWTAuthMiddleware(authService, userService)
 	adminAuthMiddleware := middleware.NewAdminAuthMiddleware(authService, userService, settingService)
 	apiKeyAuthMiddleware := middleware.NewApiKeyAuthMiddleware(apiKeyService, subscriptionService, configConfig)
@@ -146,7 +158,8 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	httpServer := server.ProvideHTTPServer(configConfig, engine)
 	tokenRefreshService := service.ProvideTokenRefreshService(accountRepository, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, configConfig)
 	antigravityQuotaRefresher := service.ProvideAntigravityQuotaRefresher(accountRepository, proxyRepository, antigravityOAuthService, configConfig)
-	v := provideCleanup(client, redisClient, tokenRefreshService, pricingService, emailQueueService, billingCacheService, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, antigravityQuotaRefresher)
+	orderCleanupService := service.ProvideOrderCleanupService(orderRepository)
+	v := provideCleanup(client, redisClient, tokenRefreshService, pricingService, emailQueueService, billingCacheService, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, antigravityQuotaRefresher, oidcssoService, orderCleanupService)
 	application := &Application{
 		Server:  httpServer,
 		Cleanup: v,
@@ -180,6 +193,8 @@ func provideCleanup(
 	geminiOAuth *service.GeminiOAuthService,
 	antigravityOAuth *service.AntigravityOAuthService,
 	antigravityQuota *service.AntigravityQuotaRefresher,
+	sso *service.OIDCSSOService,
+	orderCleanup *service.OrderCleanupService,
 ) func() {
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -223,6 +238,14 @@ func provideCleanup(
 			}},
 			{"AntigravityQuotaRefresher", func() error {
 				antigravityQuota.Stop()
+				return nil
+			}},
+			{"OIDCSSOService", func() error {
+				sso.Stop()
+				return nil
+			}},
+			{"OrderCleanupService", func() error {
+				orderCleanup.Stop()
 				return nil
 			}},
 			{"Redis", func() error {

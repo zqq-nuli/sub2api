@@ -9,7 +9,9 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/accountgroup"
 	"github.com/Wei-Shaw/sub2api/ent/apikey"
 	"github.com/Wei-Shaw/sub2api/ent/group"
+	"github.com/Wei-Shaw/sub2api/ent/order"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
+	"github.com/Wei-Shaw/sub2api/ent/rechargeproduct"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
 	"github.com/Wei-Shaw/sub2api/ent/schema"
 	"github.com/Wei-Shaw/sub2api/ent/setting"
@@ -266,6 +268,90 @@ func init() {
 	groupDescDefaultValidityDays := groupFields[10].Descriptor()
 	// group.DefaultDefaultValidityDays holds the default value on creation for the default_validity_days field.
 	group.DefaultDefaultValidityDays = groupDescDefaultValidityDays.Default.(int)
+	orderFields := schema.Order{}.Fields()
+	_ = orderFields
+	// orderDescOrderNo is the schema descriptor for order_no field.
+	orderDescOrderNo := orderFields[0].Descriptor()
+	// order.OrderNoValidator is a validator for the "order_no" field. It is called by the builders before save.
+	order.OrderNoValidator = func() func(string) error {
+		validators := orderDescOrderNo.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(order_no string) error {
+			for _, fn := range fns {
+				if err := fn(order_no); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// orderDescUserID is the schema descriptor for user_id field.
+	orderDescUserID := orderFields[1].Descriptor()
+	// order.UserIDValidator is a validator for the "user_id" field. It is called by the builders before save.
+	order.UserIDValidator = orderDescUserID.Validators[0].(func(int64) error)
+	// orderDescProductName is the schema descriptor for product_name field.
+	orderDescProductName := orderFields[3].Descriptor()
+	// order.ProductNameValidator is a validator for the "product_name" field. It is called by the builders before save.
+	order.ProductNameValidator = func() func(string) error {
+		validators := orderDescProductName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(product_name string) error {
+			for _, fn := range fns {
+				if err := fn(product_name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// orderDescBonusAmount is the schema descriptor for bonus_amount field.
+	orderDescBonusAmount := orderFields[5].Descriptor()
+	// order.DefaultBonusAmount holds the default value on creation for the bonus_amount field.
+	order.DefaultBonusAmount = orderDescBonusAmount.Default.(float64)
+	// orderDescPaymentMethod is the schema descriptor for payment_method field.
+	orderDescPaymentMethod := orderFields[7].Descriptor()
+	// order.PaymentMethodValidator is a validator for the "payment_method" field. It is called by the builders before save.
+	order.PaymentMethodValidator = func() func(string) error {
+		validators := orderDescPaymentMethod.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(payment_method string) error {
+			for _, fn := range fns {
+				if err := fn(payment_method); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// orderDescPaymentGateway is the schema descriptor for payment_gateway field.
+	orderDescPaymentGateway := orderFields[8].Descriptor()
+	// order.DefaultPaymentGateway holds the default value on creation for the payment_gateway field.
+	order.DefaultPaymentGateway = orderDescPaymentGateway.Default.(string)
+	// order.PaymentGatewayValidator is a validator for the "payment_gateway" field. It is called by the builders before save.
+	order.PaymentGatewayValidator = orderDescPaymentGateway.Validators[0].(func(string) error)
+	// orderDescTradeNo is the schema descriptor for trade_no field.
+	orderDescTradeNo := orderFields[9].Descriptor()
+	// order.TradeNoValidator is a validator for the "trade_no" field. It is called by the builders before save.
+	order.TradeNoValidator = orderDescTradeNo.Validators[0].(func(string) error)
+	// orderDescStatus is the schema descriptor for status field.
+	orderDescStatus := orderFields[10].Descriptor()
+	// order.DefaultStatus holds the default value on creation for the status field.
+	order.DefaultStatus = orderDescStatus.Default.(string)
+	// order.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	order.StatusValidator = orderDescStatus.Validators[0].(func(string) error)
+	// orderDescNotes is the schema descriptor for notes field.
+	orderDescNotes := orderFields[14].Descriptor()
+	// order.DefaultNotes holds the default value on creation for the notes field.
+	order.DefaultNotes = orderDescNotes.Default.(string)
 	proxyMixin := schema.Proxy{}.Mixin()
 	proxyMixinHooks1 := proxyMixin[1].Hooks()
 	proxy.Hooks[0] = proxyMixinHooks1[0]
@@ -353,6 +439,54 @@ func init() {
 	proxy.DefaultStatus = proxyDescStatus.Default.(string)
 	// proxy.StatusValidator is a validator for the "status" field. It is called by the builders before save.
 	proxy.StatusValidator = proxyDescStatus.Validators[0].(func(string) error)
+	rechargeproductFields := schema.RechargeProduct{}.Fields()
+	_ = rechargeproductFields
+	// rechargeproductDescName is the schema descriptor for name field.
+	rechargeproductDescName := rechargeproductFields[0].Descriptor()
+	// rechargeproduct.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	rechargeproduct.NameValidator = func() func(string) error {
+		validators := rechargeproductDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// rechargeproductDescBonusBalance is the schema descriptor for bonus_balance field.
+	rechargeproductDescBonusBalance := rechargeproductFields[3].Descriptor()
+	// rechargeproduct.DefaultBonusBalance holds the default value on creation for the bonus_balance field.
+	rechargeproduct.DefaultBonusBalance = rechargeproductDescBonusBalance.Default.(float64)
+	// rechargeproductDescDescription is the schema descriptor for description field.
+	rechargeproductDescDescription := rechargeproductFields[4].Descriptor()
+	// rechargeproduct.DefaultDescription holds the default value on creation for the description field.
+	rechargeproduct.DefaultDescription = rechargeproductDescDescription.Default.(string)
+	// rechargeproductDescSortOrder is the schema descriptor for sort_order field.
+	rechargeproductDescSortOrder := rechargeproductFields[5].Descriptor()
+	// rechargeproduct.DefaultSortOrder holds the default value on creation for the sort_order field.
+	rechargeproduct.DefaultSortOrder = rechargeproductDescSortOrder.Default.(int)
+	// rechargeproductDescIsHot is the schema descriptor for is_hot field.
+	rechargeproductDescIsHot := rechargeproductFields[6].Descriptor()
+	// rechargeproduct.DefaultIsHot holds the default value on creation for the is_hot field.
+	rechargeproduct.DefaultIsHot = rechargeproductDescIsHot.Default.(bool)
+	// rechargeproductDescDiscountLabel is the schema descriptor for discount_label field.
+	rechargeproductDescDiscountLabel := rechargeproductFields[7].Descriptor()
+	// rechargeproduct.DefaultDiscountLabel holds the default value on creation for the discount_label field.
+	rechargeproduct.DefaultDiscountLabel = rechargeproductDescDiscountLabel.Default.(string)
+	// rechargeproduct.DiscountLabelValidator is a validator for the "discount_label" field. It is called by the builders before save.
+	rechargeproduct.DiscountLabelValidator = rechargeproductDescDiscountLabel.Validators[0].(func(string) error)
+	// rechargeproductDescStatus is the schema descriptor for status field.
+	rechargeproductDescStatus := rechargeproductFields[8].Descriptor()
+	// rechargeproduct.DefaultStatus holds the default value on creation for the status field.
+	rechargeproduct.DefaultStatus = rechargeproductDescStatus.Default.(string)
+	// rechargeproduct.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	rechargeproduct.StatusValidator = rechargeproductDescStatus.Validators[0].(func(string) error)
 	redeemcodeFields := schema.RedeemCode{}.Fields()
 	_ = redeemcodeFields
 	// redeemcodeDescCode is the schema descriptor for code field.
@@ -610,6 +744,16 @@ func init() {
 	userDescNotes := userFields[7].Descriptor()
 	// user.DefaultNotes holds the default value on creation for the notes field.
 	user.DefaultNotes = userDescNotes.Default.(string)
+	// userDescAvatar is the schema descriptor for avatar field.
+	userDescAvatar := userFields[8].Descriptor()
+	// user.DefaultAvatar holds the default value on creation for the avatar field.
+	user.DefaultAvatar = userDescAvatar.Default.(string)
+	// user.AvatarValidator is a validator for the "avatar" field. It is called by the builders before save.
+	user.AvatarValidator = userDescAvatar.Validators[0].(func(string) error)
+	// userDescSSOData is the schema descriptor for sso_data field.
+	userDescSSOData := userFields[9].Descriptor()
+	// user.DefaultSSOData holds the default value on creation for the sso_data field.
+	user.DefaultSSOData = userDescSSOData.Default.(string)
 	userallowedgroupFields := schema.UserAllowedGroup{}.Fields()
 	_ = userallowedgroupFields
 	// userallowedgroupDescCreatedAt is the schema descriptor for created_at field.

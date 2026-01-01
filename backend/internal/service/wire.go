@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/crypto"
 	"github.com/google/wire"
 )
 
@@ -99,6 +100,11 @@ func ProvideOrderCleanupService(orderRepo OrderRepository) *OrderCleanupService 
 	return svc
 }
 
+// ProvideCryptoService creates CryptoService from config
+func ProvideCryptoService(cfg *config.Config) CryptoService {
+	return crypto.NewCryptoService(cfg.JWT.Secret)
+}
+
 // ProviderSet is the Wire provider set for all services
 var ProviderSet = wire.NewSet(
 	// Core services
@@ -150,4 +156,7 @@ var ProviderSet = wire.NewSet(
 	NewOrderService,
 	NewRechargeProductService,
 	ProvideOrderCleanupService,
+
+	// Crypto service
+	ProvideCryptoService,
 )

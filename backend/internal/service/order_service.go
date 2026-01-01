@@ -178,46 +178,30 @@ func (s *OrderService) AdminUpdateOrderStatus(ctx context.Context, input *AdminU
 	needDeductBalance := oldStatus == OrderStatusPaid && newStatus == OrderStatusRefunded
 
 	if needAddBalance || needDeductBalance {
-		// 使用事务处理
-		tx := s.orderRepo.BeginTx(ctx)
-		defer func() {
-			if r := recover(); r != nil {
-				tx.Rollback()
-				panic(r)
-			}
-		}()
-
 		// 更新订单状态
 		if newStatus == OrderStatusPaid {
 			now := time.Now()
 			order.PaidAt = &now
 		}
-		if err := s.orderRepo.UpdateWithTx(tx, order); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("update order: %w", err)
+
+		// 计算余额变化
+		var balanceDelta float64
+		if needAddBalance {
+			balanceDelta = order.ActualAmount
+		} else if needDeductBalance {
+			balanceDelta = -order.ActualAmount
 		}
 
-		// 更新用户余额
+		// 原子更新订单和用户余额
+		if err := s.orderRepo.UpdateOrderAndUserBalance(ctx, order, order.UserID, balanceDelta); err != nil {
+			log.Printf("[Order] Admin update: failed to update order and balance: %v", err)
+			return fmt.Errorf("update order and balance: %w", err)
+		}
+
 		if needAddBalance {
-			if err := s.userRepo.UpdateBalanceWithTx(tx, order.UserID, order.ActualAmount); err != nil {
-				tx.Rollback()
-				log.Printf("[Order] Admin update: failed to add balance for user %d: %v", order.UserID, err)
-				return fmt.Errorf("update balance: %w", err)
-			}
 			log.Printf("[Order] Admin confirmed order %s paid, user %d balance +%.2f USD", order.OrderNo, order.UserID, order.ActualAmount)
 		} else if needDeductBalance {
-			if err := s.userRepo.UpdateBalanceWithTx(tx, order.UserID, -order.ActualAmount); err != nil {
-				tx.Rollback()
-				log.Printf("[Order] Admin update: failed to deduct balance for user %d: %v", order.UserID, err)
-				return fmt.Errorf("update balance: %w", err)
-			}
 			log.Printf("[Order] Admin refunded order %s, user %d balance -%.2f USD", order.OrderNo, order.UserID, order.ActualAmount)
-		}
-
-		// 提交事务
-		if err := tx.Commit().Error; err != nil {
-			log.Printf("[Order] Admin update: transaction commit failed: %v", err)
-			return fmt.Errorf("commit transaction: %w", err)
 		}
 
 		// 异步失效余额缓存
@@ -247,17 +231,6 @@ func (s *OrderService) GetOrderStatistics(ctx context.Context) (*OrderStatistics
 		return nil, fmt.Errorf("get order statistics: %w", err)
 	}
 	return stats, nil
-}
-
-// OrderStatistics 订单统计信息
-type OrderStatistics struct {
-	TotalOrders   int64
-	PendingOrders int64
-	PaidOrders    int64
-	FailedOrders  int64
-	ExpiredOrders int64
-	TotalAmount   float64 // 总成交金额（CNY）
-	TotalBalance  float64 // 总充值余额（USD）
 }
 
 // IsValidOrderStatus 验证订单状态是否有效

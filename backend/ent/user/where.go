@@ -110,6 +110,16 @@ func Notes(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldNotes, v))
 }
 
+// Avatar applies equality check predicate on the "avatar" field. It's identical to AvatarEQ.
+func Avatar(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldAvatar, v))
+}
+
+// SSOData applies equality check predicate on the "sso_data" field. It's identical to SSODataEQ.
+func SSOData(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldSSOData, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldCreatedAt, v))
@@ -710,6 +720,136 @@ func NotesContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldNotes, v))
 }
 
+// AvatarEQ applies the EQ predicate on the "avatar" field.
+func AvatarEQ(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldAvatar, v))
+}
+
+// AvatarNEQ applies the NEQ predicate on the "avatar" field.
+func AvatarNEQ(v string) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldAvatar, v))
+}
+
+// AvatarIn applies the In predicate on the "avatar" field.
+func AvatarIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldIn(FieldAvatar, vs...))
+}
+
+// AvatarNotIn applies the NotIn predicate on the "avatar" field.
+func AvatarNotIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldAvatar, vs...))
+}
+
+// AvatarGT applies the GT predicate on the "avatar" field.
+func AvatarGT(v string) predicate.User {
+	return predicate.User(sql.FieldGT(FieldAvatar, v))
+}
+
+// AvatarGTE applies the GTE predicate on the "avatar" field.
+func AvatarGTE(v string) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldAvatar, v))
+}
+
+// AvatarLT applies the LT predicate on the "avatar" field.
+func AvatarLT(v string) predicate.User {
+	return predicate.User(sql.FieldLT(FieldAvatar, v))
+}
+
+// AvatarLTE applies the LTE predicate on the "avatar" field.
+func AvatarLTE(v string) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldAvatar, v))
+}
+
+// AvatarContains applies the Contains predicate on the "avatar" field.
+func AvatarContains(v string) predicate.User {
+	return predicate.User(sql.FieldContains(FieldAvatar, v))
+}
+
+// AvatarHasPrefix applies the HasPrefix predicate on the "avatar" field.
+func AvatarHasPrefix(v string) predicate.User {
+	return predicate.User(sql.FieldHasPrefix(FieldAvatar, v))
+}
+
+// AvatarHasSuffix applies the HasSuffix predicate on the "avatar" field.
+func AvatarHasSuffix(v string) predicate.User {
+	return predicate.User(sql.FieldHasSuffix(FieldAvatar, v))
+}
+
+// AvatarEqualFold applies the EqualFold predicate on the "avatar" field.
+func AvatarEqualFold(v string) predicate.User {
+	return predicate.User(sql.FieldEqualFold(FieldAvatar, v))
+}
+
+// AvatarContainsFold applies the ContainsFold predicate on the "avatar" field.
+func AvatarContainsFold(v string) predicate.User {
+	return predicate.User(sql.FieldContainsFold(FieldAvatar, v))
+}
+
+// SSODataEQ applies the EQ predicate on the "sso_data" field.
+func SSODataEQ(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldSSOData, v))
+}
+
+// SSODataNEQ applies the NEQ predicate on the "sso_data" field.
+func SSODataNEQ(v string) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldSSOData, v))
+}
+
+// SSODataIn applies the In predicate on the "sso_data" field.
+func SSODataIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldIn(FieldSSOData, vs...))
+}
+
+// SSODataNotIn applies the NotIn predicate on the "sso_data" field.
+func SSODataNotIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldSSOData, vs...))
+}
+
+// SSODataGT applies the GT predicate on the "sso_data" field.
+func SSODataGT(v string) predicate.User {
+	return predicate.User(sql.FieldGT(FieldSSOData, v))
+}
+
+// SSODataGTE applies the GTE predicate on the "sso_data" field.
+func SSODataGTE(v string) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldSSOData, v))
+}
+
+// SSODataLT applies the LT predicate on the "sso_data" field.
+func SSODataLT(v string) predicate.User {
+	return predicate.User(sql.FieldLT(FieldSSOData, v))
+}
+
+// SSODataLTE applies the LTE predicate on the "sso_data" field.
+func SSODataLTE(v string) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldSSOData, v))
+}
+
+// SSODataContains applies the Contains predicate on the "sso_data" field.
+func SSODataContains(v string) predicate.User {
+	return predicate.User(sql.FieldContains(FieldSSOData, v))
+}
+
+// SSODataHasPrefix applies the HasPrefix predicate on the "sso_data" field.
+func SSODataHasPrefix(v string) predicate.User {
+	return predicate.User(sql.FieldHasPrefix(FieldSSOData, v))
+}
+
+// SSODataHasSuffix applies the HasSuffix predicate on the "sso_data" field.
+func SSODataHasSuffix(v string) predicate.User {
+	return predicate.User(sql.FieldHasSuffix(FieldSSOData, v))
+}
+
+// SSODataEqualFold applies the EqualFold predicate on the "sso_data" field.
+func SSODataEqualFold(v string) predicate.User {
+	return predicate.User(sql.FieldEqualFold(FieldSSOData, v))
+}
+
+// SSODataContainsFold applies the ContainsFold predicate on the "sso_data" field.
+func SSODataContainsFold(v string) predicate.User {
+	return predicate.User(sql.FieldContainsFold(FieldSSOData, v))
+}
+
 // HasAPIKeys applies the HasEdge predicate on the "api_keys" edge.
 func HasAPIKeys() predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -863,6 +1003,29 @@ func HasAttributeValues() predicate.User {
 func HasAttributeValuesWith(preds ...predicate.UserAttributeValue) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := newAttributeValuesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasOrders applies the HasEdge predicate on the "orders" edge.
+func HasOrders() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, OrdersTable, OrdersColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrdersWith applies the HasEdge predicate on the "orders" edge with a given conditions (other predicates).
+func HasOrdersWith(preds ...predicate.Order) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newOrdersStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
