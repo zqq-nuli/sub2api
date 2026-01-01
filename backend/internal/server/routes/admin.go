@@ -34,6 +34,9 @@ func RegisterAdminRoutes(
 		// Gemini OAuth
 		registerGeminiOAuthRoutes(admin, h)
 
+		// Antigravity OAuth
+		registerAntigravityOAuthRoutes(admin, h)
+
 		// 代理管理
 		registerProxyRoutes(admin, h)
 
@@ -51,6 +54,9 @@ func RegisterAdminRoutes(
 
 		// 使用记录管理
 		registerUsageRoutes(admin, h)
+
+		// 用户属性管理
+		registerUserAttributeRoutes(admin, h)
 
 		// 订单管理
 		registerOrderRoutes(admin, h)
@@ -85,6 +91,10 @@ func registerUserManagementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		users.POST("/:id/balance", h.Admin.User.UpdateBalance)
 		users.GET("/:id/api-keys", h.Admin.User.GetUserAPIKeys)
 		users.GET("/:id/usage", h.Admin.User.GetUserUsage)
+
+		// User attribute values
+		users.GET("/:id/attributes", h.Admin.UserAttribute.GetUserAttributes)
+		users.PUT("/:id/attributes", h.Admin.UserAttribute.UpdateUserAttributes)
 	}
 }
 
@@ -113,6 +123,7 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		accounts.DELETE("/:id", h.Admin.Account.Delete)
 		accounts.POST("/:id/test", h.Admin.Account.Test)
 		accounts.POST("/:id/refresh", h.Admin.Account.Refresh)
+		accounts.POST("/:id/refresh-tier", h.Admin.Account.RefreshTier)
 		accounts.GET("/:id/stats", h.Admin.Account.GetStats)
 		accounts.POST("/:id/clear-error", h.Admin.Account.ClearError)
 		accounts.GET("/:id/usage", h.Admin.Account.GetUsage)
@@ -122,6 +133,7 @@ func registerAccountRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		accounts.GET("/:id/models", h.Admin.Account.GetAvailableModels)
 		accounts.POST("/batch", h.Admin.Account.BatchCreate)
 		accounts.POST("/batch-update-credentials", h.Admin.Account.BatchUpdateCredentials)
+		accounts.POST("/batch-refresh-tier", h.Admin.Account.BatchRefreshTier)
 		accounts.POST("/bulk-update", h.Admin.Account.BulkUpdate)
 
 		// Claude OAuth routes
@@ -151,6 +163,14 @@ func registerGeminiOAuthRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		gemini.POST("/oauth/auth-url", h.Admin.GeminiOAuth.GenerateAuthURL)
 		gemini.POST("/oauth/exchange-code", h.Admin.GeminiOAuth.ExchangeCode)
 		gemini.GET("/oauth/capabilities", h.Admin.GeminiOAuth.GetCapabilities)
+	}
+}
+
+func registerAntigravityOAuthRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	antigravity := admin.Group("/antigravity")
+	{
+		antigravity.POST("/oauth/auth-url", h.Admin.AntigravityOAuth.GenerateAuthURL)
+		antigravity.POST("/oauth/exchange-code", h.Admin.AntigravityOAuth.ExchangeCode)
 	}
 }
 
@@ -237,6 +257,18 @@ func registerUsageRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		usage.GET("/stats", h.Admin.Usage.Stats)
 		usage.GET("/search-users", h.Admin.Usage.SearchUsers)
 		usage.GET("/search-api-keys", h.Admin.Usage.SearchApiKeys)
+	}
+}
+
+func registerUserAttributeRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	attrs := admin.Group("/user-attributes")
+	{
+		attrs.GET("", h.Admin.UserAttribute.ListDefinitions)
+		attrs.POST("", h.Admin.UserAttribute.CreateDefinition)
+		attrs.POST("/batch", h.Admin.UserAttribute.GetBatchUserAttributes)
+		attrs.PUT("/reorder", h.Admin.UserAttribute.ReorderDefinitions)
+		attrs.PUT("/:id", h.Admin.UserAttribute.UpdateDefinition)
+		attrs.DELETE("/:id", h.Admin.UserAttribute.DeleteDefinition)
 	}
 }
 

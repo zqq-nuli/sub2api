@@ -2,7 +2,7 @@
   <BaseDialog
     :show="show"
     :title="t('admin.accounts.reAuthorizeAccount')"
-    width="wide"
+    width="normal"
     @close="handleClose"
   >
     <div v-if="account" class="space-y-4">
@@ -18,7 +18,9 @@
                 ? 'from-green-500 to-green-600'
                 : isGemini
                   ? 'from-blue-500 to-blue-600'
-                  : 'from-orange-500 to-orange-600'
+                  : isAntigravity
+                    ? 'from-purple-500 to-purple-600'
+                    : 'from-orange-500 to-orange-600'
             ]"
           >
             <svg
@@ -45,7 +47,9 @@
                   ? t('admin.accounts.openaiAccount')
                   : isGemini
                     ? t('admin.accounts.geminiAccount')
-                    : t('admin.accounts.claudeCodeAccount')
+                    : isAntigravity
+                      ? t('admin.accounts.antigravityAccount')
+                      : t('admin.accounts.claudeCodeAccount')
               }}
             </span>
           </div>
@@ -117,16 +121,13 @@
                 />
               </svg>
             </div>
-            <div>
-              <span class="block text-sm font-medium text-gray-900 dark:text-white">{{
-                t('admin.accounts.types.codeAssist')
-              }}</span>
-              <span class="block text-xs font-medium text-blue-600 dark:text-blue-400">{{
-                t('admin.accounts.oauth.gemini.needsProjectId')
-              }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{
-                t('admin.accounts.oauth.gemini.needsProjectIdDesc')
-              }}</span>
+            <div class="min-w-0">
+              <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                {{ t('admin.accounts.gemini.oauthType.builtInTitle') }}
+              </span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.accounts.gemini.oauthType.builtInDesc') }}
+              </span>
             </div>
           </button>
 
@@ -164,14 +165,13 @@
                 />
               </svg>
             </div>
-            <div>
-              <span class="block text-sm font-medium text-gray-900 dark:text-white">AI Studio</span>
-              <span class="block text-xs font-medium text-purple-600 dark:text-purple-400">{{
-                t('admin.accounts.oauth.gemini.noProjectIdNeeded')
-              }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{
-                t('admin.accounts.oauth.gemini.noProjectIdNeededDesc')
-              }}</span>
+            <div class="min-w-0">
+              <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                {{ t('admin.accounts.gemini.oauthType.customTitle') }}
+              </span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.accounts.gemini.oauthType.customDesc') }}
+              </span>
               <div v-if="!geminiAIStudioOAuthEnabled" class="group relative mt-1 inline-block">
                 <span
                   class="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
@@ -201,7 +201,7 @@
         :show-cookie-option="isAnthropic"
         :allow-multiple="false"
         :method-label="t('admin.accounts.inputMethod')"
-        :platform="isOpenAI ? 'openai' : isGemini ? 'gemini' : 'anthropic'"
+        :platform="isOpenAI ? 'openai' : isGemini ? 'gemini' : isAntigravity ? 'antigravity' : 'anthropic'"
         :show-project-id="isGemini && geminiOAuthType === 'code_assist'"
         @generate-url="handleGenerateUrl"
         @cookie-auth="handleCookieAuth"
@@ -264,6 +264,7 @@ import {
 } from '@/composables/useAccountOAuth'
 import { useOpenAIOAuth } from '@/composables/useOpenAIOAuth'
 import { useGeminiOAuth } from '@/composables/useGeminiOAuth'
+import { useAntigravityOAuth } from '@/composables/useAntigravityOAuth'
 import type { Account } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import OAuthAuthorizationFlow from './OAuthAuthorizationFlow.vue'
@@ -293,10 +294,11 @@ const emit = defineEmits<{
 const appStore = useAppStore()
 const { t } = useI18n()
 
-// OAuth composables - use both Claude and OpenAI
+// OAuth composables
 const claudeOAuth = useAccountOAuth()
 const openaiOAuth = useOpenAIOAuth()
 const geminiOAuth = useGeminiOAuth()
+const antigravityOAuth = useAntigravityOAuth()
 
 // Refs
 const oauthFlowRef = ref<OAuthFlowExposed | null>(null)
@@ -306,51 +308,48 @@ const addMethod = ref<AddMethod>('oauth')
 const geminiOAuthType = ref<'code_assist' | 'ai_studio'>('code_assist')
 const geminiAIStudioOAuthEnabled = ref(false)
 
-// Computed - check if this is an OpenAI account
+// Computed - check platform
 const isOpenAI = computed(() => props.account?.platform === 'openai')
 const isGemini = computed(() => props.account?.platform === 'gemini')
 const isAnthropic = computed(() => props.account?.platform === 'anthropic')
+const isAntigravity = computed(() => props.account?.platform === 'antigravity')
 
 // Computed - current OAuth state based on platform
 const currentAuthUrl = computed(() => {
   if (isOpenAI.value) return openaiOAuth.authUrl.value
   if (isGemini.value) return geminiOAuth.authUrl.value
+  if (isAntigravity.value) return antigravityOAuth.authUrl.value
   return claudeOAuth.authUrl.value
 })
 const currentSessionId = computed(() => {
   if (isOpenAI.value) return openaiOAuth.sessionId.value
   if (isGemini.value) return geminiOAuth.sessionId.value
+  if (isAntigravity.value) return antigravityOAuth.sessionId.value
   return claudeOAuth.sessionId.value
 })
 const currentLoading = computed(() => {
   if (isOpenAI.value) return openaiOAuth.loading.value
   if (isGemini.value) return geminiOAuth.loading.value
+  if (isAntigravity.value) return antigravityOAuth.loading.value
   return claudeOAuth.loading.value
 })
 const currentError = computed(() => {
   if (isOpenAI.value) return openaiOAuth.error.value
   if (isGemini.value) return geminiOAuth.error.value
+  if (isAntigravity.value) return antigravityOAuth.error.value
   return claudeOAuth.error.value
 })
 
 // Computed
 const isManualInputMethod = computed(() => {
-  // OpenAI always uses manual input (no cookie auth option)
-  return isOpenAI.value || isGemini.value || oauthFlowRef.value?.inputMethod === 'manual'
+  // OpenAI/Gemini/Antigravity always use manual input (no cookie auth option)
+  return isOpenAI.value || isGemini.value || isAntigravity.value || oauthFlowRef.value?.inputMethod === 'manual'
 })
 
 const canExchangeCode = computed(() => {
   const authCode = oauthFlowRef.value?.authCode || ''
-  const sessionId = isOpenAI.value
-    ? openaiOAuth.sessionId.value
-    : isGemini.value
-      ? geminiOAuth.sessionId.value
-      : claudeOAuth.sessionId.value
-  const loading = isOpenAI.value
-    ? openaiOAuth.loading.value
-    : isGemini.value
-      ? geminiOAuth.loading.value
-      : claudeOAuth.loading.value
+  const sessionId = currentSessionId.value
+  const loading = currentLoading.value
   return authCode.trim() && sessionId && !loading
 })
 
@@ -392,6 +391,7 @@ const resetState = () => {
   claudeOAuth.resetState()
   openaiOAuth.resetState()
   geminiOAuth.resetState()
+  antigravityOAuth.resetState()
   oauthFlowRef.value?.reset()
 }
 
@@ -415,6 +415,8 @@ const handleGenerateUrl = async () => {
   } else if (isGemini.value) {
     const projectId = geminiOAuthType.value === 'code_assist' ? oauthFlowRef.value?.projectId : undefined
     await geminiOAuth.generateAuthUrl(props.account.proxy_id, projectId, geminiOAuthType.value)
+  } else if (isAntigravity.value) {
+    await antigravityOAuth.generateAuthUrl(props.account.proxy_id)
   } else {
     await claudeOAuth.generateAuthUrl(addMethod.value, props.account.proxy_id)
   }
@@ -491,6 +493,38 @@ const handleExchangeCode = async () => {
     } catch (error: any) {
       geminiOAuth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
       appStore.showError(geminiOAuth.error.value)
+    }
+  } else if (isAntigravity.value) {
+    // Antigravity OAuth flow
+    const sessionId = antigravityOAuth.sessionId.value
+    if (!sessionId) return
+
+    const stateFromInput = oauthFlowRef.value?.oauthState || ''
+    const stateToUse = stateFromInput || antigravityOAuth.state.value
+    if (!stateToUse) return
+
+    const tokenInfo = await antigravityOAuth.exchangeAuthCode({
+      code: authCode.trim(),
+      sessionId,
+      state: stateToUse,
+      proxyId: props.account.proxy_id
+    })
+    if (!tokenInfo) return
+
+    const credentials = antigravityOAuth.buildCredentials(tokenInfo)
+
+    try {
+      await adminAPI.accounts.update(props.account.id, {
+        type: 'oauth',
+        credentials
+      })
+      await adminAPI.accounts.clearError(props.account.id)
+      appStore.showSuccess(t('admin.accounts.reAuthorizedSuccess'))
+      emit('reauthorized')
+      handleClose()
+    } catch (error: any) {
+      antigravityOAuth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
+      appStore.showError(antigravityOAuth.error.value)
     }
   } else {
     // Claude OAuth flow

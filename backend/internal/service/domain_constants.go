@@ -18,9 +18,10 @@ const (
 
 // Platform constants
 const (
-	PlatformAnthropic = "anthropic"
-	PlatformOpenAI    = "openai"
-	PlatformGemini    = "gemini"
+	PlatformAnthropic   = "anthropic"
+	PlatformOpenAI      = "openai"
+	PlatformGemini      = "gemini"
+	PlatformAntigravity = "antigravity"
 )
 
 // Account type constants
@@ -101,6 +102,9 @@ const (
 	SettingKeySSOAllowedDomains    = "sso_allowed_domains"     // 允许的邮箱域名（JSON数组）
 	SettingKeySSOAutoCreateUser    = "sso_auto_create_user"    // 是否自动创建用户
 	SettingKeySSOMinTrustLevel     = "sso_min_trust_level"     // 最小信任等级（0-4）
+
+	// Gemini 配额策略（JSON）
+	SettingKeyGeminiQuotaPolicy = "gemini_quota_policy"
 )
 
 // Admin API Key prefix (distinct from user "sk-" keys)

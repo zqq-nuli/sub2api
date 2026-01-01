@@ -7,7 +7,6 @@
 export interface User {
   id: number
   username: string
-  wechat: string
   notes: string
   email: string
   role: 'admin' | 'user' // User role for authorization
@@ -225,7 +224,7 @@ export interface PaginationConfig {
 
 // ==================== API Key & Group Types ====================
 
-export type GroupPlatform = 'anthropic' | 'openai' | 'gemini'
+export type GroupPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity'
 
 export type SubscriptionType = 'standard' | 'subscription'
 
@@ -261,7 +260,7 @@ export interface ApiKey {
 export interface CreateApiKeyRequest {
   name: string
   group_id?: number | null
-  custom_key?: string // 可选的自定义API Key
+  custom_key?: string // Optional custom API Key
 }
 
 export interface UpdateApiKeyRequest {
@@ -289,7 +288,7 @@ export interface UpdateGroupRequest {
 
 // ==================== Account & Proxy Types ====================
 
-export type AccountPlatform = 'anthropic' | 'openai' | 'gemini'
+export type AccountPlatform = 'anthropic' | 'openai' | 'gemini' | 'antigravity'
 export type AccountType = 'oauth' | 'setup-token' | 'apikey'
 export type OAuthAddMethod = 'oauth' | 'setup-token'
 export type ProxyProtocol = 'http' | 'https' | 'socks5'
@@ -314,6 +313,22 @@ export interface Proxy {
   account_count?: number // Number of accounts using this proxy
   created_at: string
   updated_at: string
+}
+
+// Gemini credentials structure for OAuth and API Key authentication
+export interface GeminiCredentials {
+  // API Key authentication
+  api_key?: string
+
+  // OAuth authentication
+  access_token?: string
+  refresh_token?: string
+  oauth_type?: 'code_assist' | 'ai_studio' | string
+  tier_id?: 'LEGACY' | 'PRO' | 'ULTRA' | string
+  project_id?: string
+  token_type?: string
+  scope?: string
+  expires_at?: string
 }
 
 export interface Account {
@@ -367,6 +382,8 @@ export interface AccountUsageInfo {
   five_hour: UsageProgress | null
   seven_day: UsageProgress | null
   seven_day_sonnet: UsageProgress | null
+  gemini_pro_daily?: UsageProgress | null
+  gemini_flash_daily?: UsageProgress | null
 }
 
 // OpenAI Codex usage snapshot (from response headers)
@@ -397,7 +414,7 @@ export interface CreateAccountRequest {
   platform: AccountPlatform
   type: AccountType
   credentials: Record<string, unknown>
-  extra?: Record<string, string>
+  extra?: Record<string, unknown>
   proxy_id?: number | null
   concurrency?: number
   priority?: number
@@ -408,7 +425,7 @@ export interface UpdateAccountRequest {
   name?: string
   type?: AccountType
   credentials?: Record<string, unknown>
-  extra?: Record<string, string>
+  extra?: Record<string, unknown>
   proxy_id?: number | null
   concurrency?: number
   priority?: number
@@ -617,7 +634,6 @@ export interface UpdateUserRequest {
   email?: string
   password?: string
   username?: string
-  wechat?: string
   notes?: string
   role?: 'admin' | 'user'
   balance?: number
@@ -753,4 +769,77 @@ export interface AccountUsageStatsResponse {
   history: AccountUsageHistory[]
   summary: AccountUsageSummary
   models: ModelStat[]
+}
+
+// ==================== User Attribute Types ====================
+
+export type UserAttributeType = 'text' | 'textarea' | 'number' | 'email' | 'url' | 'date' | 'select' | 'multi_select'
+
+export interface UserAttributeOption {
+  value: string
+  label: string
+}
+
+export interface UserAttributeValidation {
+  min_length?: number
+  max_length?: number
+  min?: number
+  max?: number
+  pattern?: string
+  message?: string
+}
+
+export interface UserAttributeDefinition {
+  id: number
+  key: string
+  name: string
+  description: string
+  type: UserAttributeType
+  options: UserAttributeOption[]
+  required: boolean
+  validation: UserAttributeValidation
+  placeholder: string
+  display_order: number
+  enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface UserAttributeValue {
+  id: number
+  user_id: number
+  attribute_id: number
+  value: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateUserAttributeRequest {
+  key: string
+  name: string
+  description?: string
+  type: UserAttributeType
+  options?: UserAttributeOption[]
+  required?: boolean
+  validation?: UserAttributeValidation
+  placeholder?: string
+  display_order?: number
+  enabled?: boolean
+}
+
+export interface UpdateUserAttributeRequest {
+  key?: string
+  name?: string
+  description?: string
+  type?: UserAttributeType
+  options?: UserAttributeOption[]
+  required?: boolean
+  validation?: UserAttributeValidation
+  placeholder?: string
+  display_order?: number
+  enabled?: boolean
+}
+
+export interface UserAttributeValuesMap {
+  [attributeId: number]: string
 }

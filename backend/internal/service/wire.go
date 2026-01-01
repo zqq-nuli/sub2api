@@ -17,7 +17,7 @@ type BuildInfo struct {
 func ProvidePricingService(cfg *config.Config, remoteClient PricingRemoteClient) (*PricingService, error) {
 	svc := NewPricingService(cfg, remoteClient)
 	if err := svc.Initialize(); err != nil {
-		// 价格服务初始化失败不应阻止启动,使用回退价格
+		// Pricing service initialization failure should not block startup, use fallback prices
 		println("[Service] Warning: Pricing service initialization failed:", err.Error())
 	}
 	return svc, nil
@@ -39,9 +39,10 @@ func ProvideTokenRefreshService(
 	oauthService *OAuthService,
 	openaiOAuthService *OpenAIOAuthService,
 	geminiOAuthService *GeminiOAuthService,
+	antigravityOAuthService *AntigravityOAuthService,
 	cfg *config.Config,
 ) *TokenRefreshService {
-	svc := NewTokenRefreshService(accountRepo, oauthService, openaiOAuthService, geminiOAuthService, cfg)
+	svc := NewTokenRefreshService(accountRepo, oauthService, openaiOAuthService, geminiOAuthService, antigravityOAuthService, cfg)
 	svc.Start()
 	return svc
 }
@@ -53,10 +54,31 @@ func ProvideTimingWheelService() *TimingWheelService {
 	return svc
 }
 
+// ProvideAntigravityQuotaRefresher creates and starts AntigravityQuotaRefresher
+func ProvideAntigravityQuotaRefresher(
+	accountRepo AccountRepository,
+	proxyRepo ProxyRepository,
+	oauthSvc *AntigravityOAuthService,
+	cfg *config.Config,
+) *AntigravityQuotaRefresher {
+	svc := NewAntigravityQuotaRefresher(accountRepo, proxyRepo, oauthSvc, cfg)
+	svc.Start()
+	return svc
+}
+
 // ProvideDeferredService creates and starts DeferredService
 func ProvideDeferredService(accountRepo AccountRepository, timingWheel *TimingWheelService) *DeferredService {
 	svc := NewDeferredService(accountRepo, timingWheel, 10*time.Second)
 	svc.Start()
+	return svc
+}
+
+// ProvideConcurrencyService creates ConcurrencyService and starts slot cleanup worker.
+func ProvideConcurrencyService(cache ConcurrencyCache, accountRepo AccountRepository, cfg *config.Config) *ConcurrencyService {
+	svc := NewConcurrencyService(cache)
+	if cfg != nil {
+		svc.StartSlotCleanupWorker(accountRepo, cfg.Gateway.Scheduling.SlotCleanupInterval)
+	}
 	return svc
 }
 
@@ -98,8 +120,12 @@ var ProviderSet = wire.NewSet(
 	NewOAuthService,
 	NewOpenAIOAuthService,
 	NewGeminiOAuthService,
+	NewGeminiQuotaService,
+	NewAntigravityOAuthService,
 	NewGeminiTokenProvider,
 	NewGeminiMessagesCompatService,
+	NewAntigravityTokenProvider,
+	NewAntigravityGatewayService,
 	NewRateLimitService,
 	NewAccountUsageService,
 	NewAccountTestService,
@@ -108,13 +134,15 @@ var ProviderSet = wire.NewSet(
 	ProvideEmailQueueService,
 	NewTurnstileService,
 	NewSubscriptionService,
-	NewConcurrencyService,
+	ProvideConcurrencyService,
 	NewIdentityService,
 	NewCRSSyncService,
 	ProvideUpdateService,
 	ProvideTokenRefreshService,
 	ProvideTimingWheelService,
 	ProvideDeferredService,
+	ProvideAntigravityQuotaRefresher,
+	NewUserAttributeService,
 	ProvideOIDCSSOService,
 
 	// Payment and order services

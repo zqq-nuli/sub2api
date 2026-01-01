@@ -20,6 +20,8 @@ English | [中文](README_CN.md)
 
 Try Sub2API online: **https://v2.pincc.ai/**
 
+Demo credentials (shared demo environment; **not** created automatically for self-hosted installs):
+
 | Email | Password |
 |-------|----------|
 | admin@sub2api.com | admin123 |
@@ -260,8 +262,10 @@ jwt:
   expire_hour: 24
 
 default:
-  admin_email: "admin@example.com"
-  admin_password: "admin123"
+  user_concurrency: 5
+  user_balance: 0
+  api_key_prefix: "sk-"
+  rate_multiplier: 1.0
 ```
 
 ```bash
@@ -280,6 +284,42 @@ go run ./cmd/server
 cd frontend
 npm run dev
 ```
+
+#### Code Generation
+
+When editing `backend/ent/schema`, regenerate Ent + Wire:
+
+```bash
+cd backend
+go generate ./ent
+go generate ./cmd/server
+```
+
+---
+
+## Antigravity Support
+
+Sub2API supports [Antigravity](https://antigravity.so/) accounts. After authorization, dedicated endpoints are available for Claude and Gemini models.
+
+### Dedicated Endpoints
+
+| Endpoint | Model |
+|----------|-------|
+| `/antigravity/v1/messages` | Claude models |
+| `/antigravity/v1beta/` | Gemini models |
+
+### Claude Code Configuration
+
+```bash
+export ANTHROPIC_BASE_URL="http://localhost:8080/antigravity"
+export ANTHROPIC_AUTH_TOKEN="sk-xxx"
+```
+
+### Hybrid Scheduling Mode
+
+Antigravity accounts support optional **hybrid scheduling**. When enabled, the general endpoints `/v1/messages` and `/v1beta/` will also route requests to Antigravity accounts.
+
+> **⚠️ Warning**: Anthropic Claude and Antigravity Claude **cannot be mixed within the same conversation context**. Use groups to isolate them properly.
 
 ---
 

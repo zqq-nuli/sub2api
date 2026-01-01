@@ -11,7 +11,7 @@ import (
 	"strconv"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
-	infraerrors "github.com/Wei-Shaw/sub2api/internal/infrastructure/errors"
+	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 )
 
 // CryptoService 加密服务接口

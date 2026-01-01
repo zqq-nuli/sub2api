@@ -2,7 +2,7 @@
   <BaseDialog
     :show="show"
     :title="t('admin.accounts.createAccount')"
-    width="wide"
+    width="normal"
     @close="handleClose"
   >
     <!-- Step Indicator for OAuth accounts -->
@@ -53,13 +53,14 @@
           required
           class="input"
           :placeholder="t('admin.accounts.enterAccountName')"
+          data-tour="account-form-name"
         />
       </div>
 
       <!-- Platform Selection - Segmented Control Style -->
       <div>
         <label class="input-label">{{ t('admin.accounts.platform') }}</label>
-        <div class="mt-2 flex rounded-lg bg-gray-100 p-1 dark:bg-dark-700">
+        <div class="mt-2 flex rounded-lg bg-gray-100 p-1 dark:bg-dark-700" data-tour="account-form-platform">
           <button
             type="button"
             @click="form.platform = 'anthropic'"
@@ -135,13 +136,38 @@
             </svg>
             Gemini
           </button>
+          <button
+            type="button"
+            @click="form.platform = 'antigravity'"
+            :class="[
+              'flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all',
+              form.platform === 'antigravity'
+                ? 'bg-white text-purple-600 shadow-sm dark:bg-dark-600 dark:text-purple-400'
+                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+            ]"
+          >
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"
+              />
+            </svg>
+            Antigravity
+          </button>
         </div>
       </div>
 
       <!-- Account Type Selection (Anthropic) -->
       <div v-if="form.platform === 'anthropic'">
         <label class="input-label">{{ t('admin.accounts.accountType') }}</label>
-        <div class="mt-2 grid grid-cols-2 gap-3">
+        <div class="mt-2 grid grid-cols-2 gap-3" data-tour="account-form-type">
           <button
             type="button"
             @click="accountCategory = 'oauth-based'"
@@ -231,7 +257,7 @@
       <!-- Account Type Selection (OpenAI) -->
       <div v-if="form.platform === 'openai'">
         <label class="input-label">{{ t('admin.accounts.accountType') }}</label>
-        <div class="mt-2 grid grid-cols-2 gap-3">
+        <div class="mt-2 grid grid-cols-2 gap-3" data-tour="account-form-type">
           <button
             type="button"
             @click="accountCategory = 'oauth-based'"
@@ -313,7 +339,7 @@
       <!-- Account Type Selection (Gemini) -->
       <div v-if="form.platform === 'gemini'">
         <label class="input-label">{{ t('admin.accounts.accountType') }}</label>
-        <div class="mt-2 grid grid-cols-2 gap-3">
+        <div class="mt-2 grid grid-cols-2 gap-3" data-tour="account-form-type">
           <button
             type="button"
             @click="accountCategory = 'oauth-based'"
@@ -347,8 +373,12 @@
               </svg>
             </div>
             <div>
-              <span class="block text-sm font-medium text-gray-900 dark:text-white">OAuth</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.googleOauth') }}</span>
+              <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                {{ t('admin.accounts.gemini.accountType.oauthTitle') }}
+              </span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.accounts.gemini.accountType.oauthDesc') }}
+              </span>
             </div>
           </button>
 
@@ -385,16 +415,92 @@
               </svg>
             </div>
             <div>
-              <span class="block text-sm font-medium text-gray-900 dark:text-white">API Key</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">AI Studio API Key</span>
+              <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                {{ t('admin.accounts.gemini.accountType.apiKeyTitle') }}
+              </span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.accounts.gemini.accountType.apiKeyDesc') }}
+              </span>
             </div>
           </button>
+        </div>
+
+        <div
+          v-if="accountCategory === 'apikey'"
+          class="mt-3 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-800 dark:border-purple-800/40 dark:bg-purple-900/20 dark:text-purple-200"
+        >
+          <p>{{ t('admin.accounts.gemini.accountType.apiKeyNote') }}</p>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <a
+              :href="geminiHelpLinks.apiKey"
+              class="font-medium text-blue-600 hover:underline dark:text-blue-400"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {{ t('admin.accounts.gemini.accountType.apiKeyLink') }}
+            </a>
+            <span class="text-purple-400">·</span>
+            <a
+              :href="geminiHelpLinks.aiStudioPricing"
+              class="font-medium text-blue-600 hover:underline dark:text-blue-400"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {{ t('admin.accounts.gemini.accountType.quotaLink') }}
+            </a>
+          </div>
         </div>
 
         <!-- OAuth Type Selection (only show when oauth-based is selected) -->
         <div v-if="accountCategory === 'oauth-based'" class="mt-4">
           <label class="input-label">{{ t('admin.accounts.oauth.gemini.oauthTypeLabel') }}</label>
           <div class="mt-2 grid grid-cols-2 gap-3">
+            <!-- Google One OAuth -->
+            <button
+              type="button"
+              @click="handleSelectGeminiOAuthType('google_one')"
+              :class="[
+                'flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
+                geminiOAuthType === 'google_one'
+                  ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                  : 'border-gray-200 hover:border-purple-300 dark:border-dark-600 dark:hover:border-purple-700'
+              ]"
+            >
+              <div
+                :class="[
+                  'flex h-8 w-8 items-center justify-center rounded-lg',
+                  geminiOAuthType === 'google_one'
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-gray-100 text-gray-500 dark:bg-dark-600 dark:text-gray-400'
+                ]"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                  Google One
+                </span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                  个人账号，享受 Google One 订阅配额
+                </span>
+                <div class="mt-2 flex flex-wrap gap-1">
+                  <span
+                    class="rounded bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                  >
+                    推荐个人用户
+                  </span>
+                  <span
+                    class="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                  >
+                    无需 GCP
+                  </span>
+                </div>
+              </div>
+            </button>
+
+            <!-- GCP Code Assist OAuth -->
             <button
               type="button"
               @click="handleSelectGeminiOAuthType('code_assist')"
@@ -417,71 +523,235 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
                 </svg>
               </div>
-              <div>
-                <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ t('admin.accounts.types.codeAssist') }}</span>
-                <span class="block text-xs font-medium text-blue-600 dark:text-blue-400">{{ t('admin.accounts.oauth.gemini.needsProjectId') }}</span>
-                <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.oauth.gemini.needsProjectIdDesc') }}</span>
+              <div class="min-w-0">
+                <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                  GCP Code Assist
+                </span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                  企业级，需要 GCP 项目
+                </span>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  需要激活 GCP 项目并绑定信用卡
+                  <a
+                    :href="geminiHelpLinks.gcpProject"
+                    class="ml-1 text-blue-600 hover:underline dark:text-blue-400"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {{ t('admin.accounts.gemini.oauthType.gcpProjectLink') }}
+                  </a>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-1">
+                  <span
+                    class="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                  >
+                    企业用户
+                  </span>
+                  <span
+                    class="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                  >
+                    高并发
+                  </span>
+                </div>
               </div>
             </button>
+          </div>
 
-            <div class="group relative">
-              <button
-                type="button"
-                :disabled="!geminiAIStudioOAuthEnabled"
-                @click="handleSelectGeminiOAuthType('ai_studio')"
+          <!-- Advanced Options Toggle -->
+          <div class="mt-3">
+            <button
+              type="button"
+              @click="showAdvancedOAuth = !showAdvancedOAuth"
+              class="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <svg
+                :class="['h-4 w-4 transition-transform', showAdvancedOAuth ? 'rotate-90' : '']"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+              <span>{{ showAdvancedOAuth ? '隐藏' : '显示' }}高级选项（自建 OAuth Client）</span>
+            </button>
+          </div>
+
+          <!-- Custom OAuth Client (Advanced) -->
+          <div v-if="showAdvancedOAuth" class="mt-3 group relative">
+            <button
+              type="button"
+              :disabled="!geminiAIStudioOAuthEnabled"
+              @click="handleSelectGeminiOAuthType('ai_studio')"
+              :class="[
+                'flex w-full items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
+                !geminiAIStudioOAuthEnabled ? 'cursor-not-allowed opacity-60' : '',
+                geminiOAuthType === 'ai_studio'
+                  ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                  : 'border-gray-200 hover:border-amber-300 dark:border-dark-600 dark:hover:border-amber-700'
+              ]"
+            >
+              <div
                 :class="[
-                  'flex w-full items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
-                  !geminiAIStudioOAuthEnabled ? 'cursor-not-allowed opacity-60' : '',
+                  'flex h-8 w-8 items-center justify-center rounded-lg',
                   geminiOAuthType === 'ai_studio'
-                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                    : 'border-gray-200 hover:border-purple-300 dark:border-dark-600 dark:hover:border-purple-700'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-gray-100 text-gray-500 dark:bg-dark-600 dark:text-gray-400'
                 ]"
               >
-                <div
-                  :class="[
-                    'flex h-8 w-8 items-center justify-center rounded-lg',
-                    geminiOAuthType === 'ai_studio'
-                      ? 'bg-purple-500 text-white'
-                      : 'bg-gray-100 text-gray-500 dark:bg-dark-600 dark:text-gray-400'
-                  ]"
+                <svg
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="1.5"
                 >
-                  <svg
-                    class="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
-                    />
-                  </svg>
-                </div>
-                <div class="min-w-0">
-                  <span class="block text-sm font-medium text-gray-900 dark:text-white">AI Studio</span>
-                  <span class="block text-xs font-medium text-purple-600 dark:text-purple-400">{{
-                    t('admin.accounts.oauth.gemini.noProjectIdNeeded')
-                  }}</span>
-                  <span class="text-xs text-gray-500 dark:text-gray-400">{{
-                    t('admin.accounts.oauth.gemini.noProjectIdNeededDesc')
-                  }}</span>
-                </div>
-                <span
-                  v-if="!geminiAIStudioOAuthEnabled"
-                  class="ml-auto shrink-0 rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                >
-                  {{ t('admin.accounts.oauth.gemini.aiStudioNotConfiguredShort') }}
-                </span>
-              </button>
-
-              <div
-                v-if="!geminiAIStudioOAuthEnabled"
-                class="pointer-events-none absolute right-0 top-full z-50 mt-2 w-80 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
-              >
-                {{ t('admin.accounts.oauth.gemini.aiStudioNotConfiguredTip') }}
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+                  />
+                </svg>
               </div>
+              <div class="min-w-0">
+                <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                  {{ t('admin.accounts.gemini.oauthType.customTitle') }}
+                </span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.accounts.gemini.oauthType.customDesc') }}
+                </span>
+                <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('admin.accounts.gemini.oauthType.customRequirement') }}
+                </div>
+                <div class="mt-2 flex flex-wrap gap-1">
+                  <span
+                    class="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                  >
+                    {{ t('admin.accounts.gemini.oauthType.badges.orgManaged') }}
+                  </span>
+                  <span
+                    class="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                  >
+                    {{ t('admin.accounts.gemini.oauthType.badges.adminRequired') }}
+                  </span>
+                </div>
+              </div>
+              <span
+                v-if="!geminiAIStudioOAuthEnabled"
+                class="ml-auto shrink-0 rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+              >
+                {{ t('admin.accounts.oauth.gemini.aiStudioNotConfiguredShort') }}
+              </span>
+            </button>
+
+            <div
+              v-if="!geminiAIStudioOAuthEnabled"
+              class="pointer-events-none absolute right-0 top-full z-50 mt-2 w-80 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
+            >
+              {{ t('admin.accounts.oauth.gemini.aiStudioNotConfiguredTip') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-xs text-blue-900 dark:border-blue-800/40 dark:bg-blue-900/20 dark:text-blue-200">
+          <div class="flex items-start gap-3">
+            <svg
+              class="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-blue-800 dark:text-blue-300">
+                {{ t('admin.accounts.gemini.setupGuide.title') }}
+              </p>
+              <div class="mt-2 space-y-2">
+                <div>
+                  <p class="font-semibold text-blue-800 dark:text-blue-300">
+                    {{ t('admin.accounts.gemini.setupGuide.checklistTitle') }}
+                  </p>
+                  <ul class="mt-1 list-disc space-y-1 pl-4">
+                    <li>
+                      {{ t('admin.accounts.gemini.setupGuide.checklistItems.usIp') }}
+                      <a
+                        :href="geminiHelpLinks.countryCheck"
+                        class="ml-1 text-blue-600 hover:underline dark:text-blue-400"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {{ t('admin.accounts.gemini.setupGuide.links.countryCheck') }}
+                      </a>
+                    </li>
+                    <li>{{ t('admin.accounts.gemini.setupGuide.checklistItems.age') }}</li>
+                  </ul>
+                </div>
+                <div>
+                  <p class="font-semibold text-blue-800 dark:text-blue-300">
+                    {{ t('admin.accounts.gemini.setupGuide.activationTitle') }}
+                  </p>
+                  <ul class="mt-1 list-disc space-y-1 pl-4">
+                    <li>
+                      {{ t('admin.accounts.gemini.setupGuide.activationItems.geminiWeb') }}
+                      <a
+                        :href="geminiHelpLinks.geminiWebActivation"
+                        class="ml-1 text-blue-600 hover:underline dark:text-blue-400"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {{ t('admin.accounts.gemini.setupGuide.links.geminiWebActivation') }}
+                      </a>
+                    </li>
+                    <li>
+                      {{ t('admin.accounts.gemini.setupGuide.activationItems.gcpProject') }}
+                      <a
+                        :href="geminiHelpLinks.gcpProject"
+                        class="ml-1 text-blue-600 hover:underline dark:text-blue-400"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {{ t('admin.accounts.gemini.setupGuide.links.gcpProject') }}
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Account Type Selection (Antigravity - OAuth only) -->
+      <div v-if="form.platform === 'antigravity'">
+        <label class="input-label">{{ t('admin.accounts.accountType') }}</label>
+        <div class="mt-2">
+          <div
+            class="flex items-center gap-3 rounded-lg border-2 border-purple-500 bg-purple-50 p-3 dark:bg-purple-900/20"
+          >
+            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500 text-white">
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"
+                />
+              </svg>
+            </div>
+            <div>
+              <span class="block text-sm font-medium text-gray-900 dark:text-white">OAuth</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.types.antigravityOauth') }}</span>
             </div>
           </div>
         </div>
@@ -610,47 +880,7 @@
 
           <!-- Whitelist Mode -->
           <div v-if="modelRestrictionMode === 'whitelist'">
-            <div class="mb-3 rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
-              <p class="text-xs text-blue-700 dark:text-blue-400">
-                <svg
-                  class="mr-1 inline h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                {{ t('admin.accounts.selectAllowedModels') }}
-              </p>
-            </div>
-
-            <!-- Model Checkbox List -->
-            <div class="mb-3 grid grid-cols-2 gap-2">
-              <label
-                v-for="model in commonModels"
-                :key="model.value"
-                class="flex cursor-pointer items-center rounded-lg border p-3 transition-all hover:bg-gray-50 dark:border-dark-600 dark:hover:bg-dark-700"
-                :class="
-                  allowedModels.includes(model.value)
-                    ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                    : 'border-gray-200'
-                "
-              >
-                <input
-                  type="checkbox"
-                  :value="model.value"
-                  v-model="allowedModels"
-                  class="mr-2 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <span class="text-sm text-gray-700 dark:text-gray-300">{{ model.label }}</span>
-              </label>
-            </div>
-
+            <ModelWhitelistSelector v-model="allowedModels" :platform="form.platform" />
             <p class="text-xs text-gray-500 dark:text-gray-400">
               {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
               <span v-if="allowedModels.length === 0">{{
@@ -913,6 +1143,165 @@
             </div>
           </div>
         </div>
+
+        <!-- Gemini 配额与限流政策说明 -->
+        <div v-if="form.platform === 'gemini'" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+          <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/40">
+            <div class="flex items-start gap-3">
+              <svg
+                class="h-5 w-5 flex-shrink-0 text-gray-500 dark:text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                  {{ t('admin.accounts.gemini.quotaPolicy.title') }}
+                </p>
+                <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                  {{ t('admin.accounts.gemini.quotaPolicy.note') }}
+                </p>
+                <div class="mt-3 overflow-x-auto">
+                  <table class="min-w-full text-xs text-gray-700 dark:text-gray-300">
+                    <thead>
+                      <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <th class="px-2 py-1.5 text-left font-semibold">
+                          {{ t('admin.accounts.gemini.quotaPolicy.columns.channel') }}
+                        </th>
+                        <th class="px-2 py-1.5 text-left font-semibold">
+                          {{ t('admin.accounts.gemini.quotaPolicy.columns.account') }}
+                        </th>
+                        <th class="px-2 py-1.5 text-left font-semibold">
+                          {{ t('admin.accounts.gemini.quotaPolicy.columns.limits') }}
+                        </th>
+                        <th class="px-2 py-1.5 text-left font-semibold">
+                          {{ t('admin.accounts.gemini.quotaPolicy.columns.docs') }}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="border-b border-gray-100 dark:border-gray-800">
+                        <td class="px-2 py-1.5 align-top" rowspan="2">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.cli.channel') }}
+                        </td>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.cli.free') }}
+                        </td>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.cli.limitsFree') }}
+                        </td>
+                        <td class="px-2 py-1.5 align-top" rowspan="2">
+                          <a
+                            :href="geminiQuotaDocs.codeAssist"
+                            class="text-blue-600 hover:underline dark:text-blue-400"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {{ t('admin.accounts.gemini.quotaPolicy.docs.codeAssist') }}
+                          </a>
+                        </td>
+                      </tr>
+                      <tr class="border-b border-gray-100 dark:border-gray-800">
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.cli.premium') }}
+                        </td>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.cli.limitsPremium') }}
+                        </td>
+                      </tr>
+                      <tr class="border-b border-gray-100 dark:border-gray-800">
+                        <td class="px-2 py-1.5 align-top">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.gcloud.channel') }}
+                        </td>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.gcloud.account') }}
+                        </td>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.gcloud.limits') }}
+                        </td>
+                        <td class="px-2 py-1.5 align-top">
+                          <a
+                            :href="geminiQuotaDocs.codeAssist"
+                            class="text-blue-600 hover:underline dark:text-blue-400"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {{ t('admin.accounts.gemini.quotaPolicy.docs.codeAssist') }}
+                          </a>
+                        </td>
+                      </tr>
+                      <tr class="border-b border-gray-100 dark:border-gray-800">
+                        <td class="px-2 py-1.5 align-top" rowspan="2">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.aiStudio.channel') }}
+                        </td>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.aiStudio.free') }}
+                        </td>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.aiStudio.limitsFree') }}
+                        </td>
+                        <td class="px-2 py-1.5 align-top" rowspan="2">
+                          <a
+                            :href="geminiQuotaDocs.aiStudio"
+                            class="text-blue-600 hover:underline dark:text-blue-400"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {{ t('admin.accounts.gemini.quotaPolicy.docs.aiStudio') }}
+                          </a>
+                        </td>
+                      </tr>
+                      <tr class="border-b border-gray-100 dark:border-gray-800">
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.aiStudio.paid') }}
+                        </td>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.aiStudio.limitsPaid') }}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="px-2 py-1.5 align-top" rowspan="2">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.customOAuth.channel') }}
+                        </td>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.customOAuth.free') }}
+                        </td>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.customOAuth.limitsFree') }}
+                        </td>
+                        <td class="px-2 py-1.5 align-top" rowspan="2">
+                          <a
+                            :href="geminiQuotaDocs.vertex"
+                            class="text-blue-600 hover:underline dark:text-blue-400"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {{ t('admin.accounts.gemini.quotaPolicy.docs.vertex') }}
+                          </a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.customOAuth.paid') }}
+                        </td>
+                        <td class="px-2 py-1.5">
+                          {{ t('admin.accounts.gemini.quotaPolicy.rows.customOAuth.limitsPaid') }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Intercept Warmup Requests (Anthropic only) -->
@@ -959,8 +1348,44 @@
         </div>
         <div>
           <label class="input-label">{{ t('admin.accounts.priority') }}</label>
-          <input v-model.number="form.priority" type="number" min="1" class="input" />
+          <input
+            v-model.number="form.priority"
+            type="number"
+            min="1"
+            class="input"
+            data-tour="account-form-priority"
+          />
           <p class="input-hint">{{ t('admin.accounts.priorityHint') }}</p>
+        </div>
+      </div>
+
+      <!-- Mixed Scheduling (only for antigravity accounts) -->
+      <div v-if="form.platform === 'antigravity'" class="flex items-center gap-2">
+        <label class="flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            v-model="mixedScheduling"
+            class="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500 dark:border-dark-500"
+          />
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {{ t('admin.accounts.mixedScheduling') }}
+          </span>
+        </label>
+        <div class="group relative">
+          <span
+            class="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-gray-200 text-xs text-gray-500 hover:bg-gray-300 dark:bg-dark-600 dark:text-gray-400 dark:hover:bg-dark-500"
+          >
+            ?
+          </span>
+          <!-- Tooltip（向下显示避免被弹窗裁剪） -->
+          <div
+            class="pointer-events-none absolute left-0 top-full z-[100] mt-1.5 w-72 rounded bg-gray-900 px-3 py-2 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-gray-700"
+          >
+            {{ t('admin.accounts.mixedSchedulingTooltip') }}
+            <div
+              class="absolute bottom-full left-3 border-4 border-transparent border-b-gray-900 dark:border-b-gray-700"
+            ></div>
+          </div>
         </div>
       </div>
 
@@ -970,6 +1395,8 @@
         v-model="form.group_ids"
         :groups="groups"
         :platform="form.platform"
+        :mixed-scheduling="mixedScheduling"
+        data-tour="account-form-groups"
       />
 
     </form>
@@ -1005,6 +1432,7 @@
           form="create-account-form"
           :disabled="submitting"
           class="btn btn-primary"
+          data-tour="account-form-submit"
         >
           <svg
             v-if="submitting"
@@ -1081,6 +1509,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
+import { claudeModels, getPresetMappingsByPlatform, getModelsByPlatform, commonErrorCodes, buildModelMappingObject } from '@/composables/useModelWhitelist'
 import { useAuthStore } from '@/stores/auth'
 import { adminAPI } from '@/api/admin'
 import {
@@ -1090,10 +1519,12 @@ import {
 } from '@/composables/useAccountOAuth'
 import { useOpenAIOAuth } from '@/composables/useOpenAIOAuth'
 import { useGeminiOAuth } from '@/composables/useGeminiOAuth'
+import { useAntigravityOAuth } from '@/composables/useAntigravityOAuth'
 import type { Proxy, Group, AccountPlatform, AccountType } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ProxySelector from '@/components/common/ProxySelector.vue'
 import GroupSelector from '@/components/common/GroupSelector.vue'
+import ModelWhitelistSelector from '@/components/account/ModelWhitelistSelector.vue'
 import OAuthAuthorizationFlow from './OAuthAuthorizationFlow.vue'
 
 // Type for exposed OAuthAuthorizationFlow component
@@ -1113,6 +1544,7 @@ const authStore = useAuthStore()
 const oauthStepTitle = computed(() => {
   if (form.platform === 'openai') return t('admin.accounts.oauth.openai.title')
   if (form.platform === 'gemini') return t('admin.accounts.oauth.gemini.title')
+  if (form.platform === 'antigravity') return t('admin.accounts.oauth.antigravity.title')
   return t('admin.accounts.oauth.title')
 })
 
@@ -1147,29 +1579,34 @@ const appStore = useAppStore()
 const oauth = useAccountOAuth() // For Anthropic OAuth
 const openaiOAuth = useOpenAIOAuth() // For OpenAI OAuth
 const geminiOAuth = useGeminiOAuth() // For Gemini OAuth
+const antigravityOAuth = useAntigravityOAuth() // For Antigravity OAuth
 
 // Computed: current OAuth state for template binding
 const currentAuthUrl = computed(() => {
   if (form.platform === 'openai') return openaiOAuth.authUrl.value
   if (form.platform === 'gemini') return geminiOAuth.authUrl.value
+  if (form.platform === 'antigravity') return antigravityOAuth.authUrl.value
   return oauth.authUrl.value
 })
 
 const currentSessionId = computed(() => {
   if (form.platform === 'openai') return openaiOAuth.sessionId.value
   if (form.platform === 'gemini') return geminiOAuth.sessionId.value
+  if (form.platform === 'antigravity') return antigravityOAuth.sessionId.value
   return oauth.sessionId.value
 })
 
 const currentOAuthLoading = computed(() => {
   if (form.platform === 'openai') return openaiOAuth.loading.value
   if (form.platform === 'gemini') return geminiOAuth.loading.value
+  if (form.platform === 'antigravity') return antigravityOAuth.loading.value
   return oauth.loading.value
 })
 
 const currentOAuthError = computed(() => {
   if (form.platform === 'openai') return openaiOAuth.error.value
   if (form.platform === 'gemini') return geminiOAuth.error.value
+  if (form.platform === 'antigravity') return antigravityOAuth.error.value
   return oauth.error.value
 })
 
@@ -1196,181 +1633,27 @@ const customErrorCodesEnabled = ref(false)
 const selectedErrorCodes = ref<number[]>([])
 const customErrorCodeInput = ref<number | null>(null)
 const interceptWarmupRequests = ref(false)
-const geminiOAuthType = ref<'code_assist' | 'ai_studio'>('code_assist')
+const mixedScheduling = ref(false) // For antigravity accounts: enable mixed scheduling
+const geminiOAuthType = ref<'code_assist' | 'google_one' | 'ai_studio'>('google_one')
 const geminiAIStudioOAuthEnabled = ref(false)
+const showAdvancedOAuth = ref(false)
 
-// Common models for whitelist - Anthropic
-const anthropicModels = [
-  { value: 'claude-opus-4-5-20251101', label: 'Claude Opus 4.5' },
-  { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-  { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5' },
-  { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku' },
-  { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
-  { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
-  { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
-  { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' }
-]
+const geminiQuotaDocs = {
+  codeAssist: 'https://developers.google.com/gemini-code-assist/resources/quotas',
+  aiStudio: 'https://ai.google.dev/pricing',
+  vertex: 'https://cloud.google.com/vertex-ai/generative-ai/docs/quotas'
+}
 
-// Common models for whitelist - OpenAI
-const openaiModels = [
-  { value: 'gpt-5.2-2025-12-11', label: 'GPT-5.2' },
-  { value: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
-  { value: 'gpt-5.1-codex-max', label: 'GPT-5.1 Codex Max' },
-  { value: 'gpt-5.1-codex', label: 'GPT-5.1 Codex' },
-  { value: 'gpt-5.1-2025-11-13', label: 'GPT-5.1' },
-  { value: 'gpt-5.1-codex-mini', label: 'GPT-5.1 Codex Mini' },
-  { value: 'gpt-5-2025-08-07', label: 'GPT-5' }
-]
-
-// Common models for whitelist - Gemini
-const geminiModels = [
-  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-  { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite' },
-  { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
-  { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' }
-]
-
-// Computed: current models based on platform
-const commonModels = computed(() => {
-  if (form.platform === 'openai') return openaiModels
-  if (form.platform === 'gemini') return geminiModels
-  return anthropicModels
-})
-
-// Preset mappings for quick add - Anthropic
-const anthropicPresetMappings = [
-  {
-    label: 'Sonnet 4',
-    from: 'claude-sonnet-4-20250514',
-    to: 'claude-sonnet-4-20250514',
-    color: 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400'
-  },
-  {
-    label: 'Sonnet 4.5',
-    from: 'claude-sonnet-4-5-20250929',
-    to: 'claude-sonnet-4-5-20250929',
-    color:
-      'bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400'
-  },
-  {
-    label: 'Opus 4.5',
-    from: 'claude-opus-4-5-20251101',
-    to: 'claude-opus-4-5-20251101',
-    color:
-      'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400'
-  },
-  {
-    label: 'Haiku 3.5',
-    from: 'claude-3-5-haiku-20241022',
-    to: 'claude-3-5-haiku-20241022',
-    color: 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400'
-  },
-  {
-    label: 'Haiku 4.5',
-    from: 'claude-haiku-4-5-20251001',
-    to: 'claude-haiku-4-5-20251001',
-    color:
-      'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400'
-  },
-  {
-    label: 'Opus->Sonnet',
-    from: 'claude-opus-4-5-20251101',
-    to: 'claude-sonnet-4-5-20250929',
-    color: 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400'
-  }
-]
-
-// Preset mappings for quick add - OpenAI
-const openaiPresetMappings = [
-  {
-    label: 'GPT-5.2',
-    from: 'gpt-5.2-2025-12-11',
-    to: 'gpt-5.2-2025-12-11',
-    color: 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400'
-  },
-  {
-    label: 'GPT-5.2 Codex',
-    from: 'gpt-5.2-codex',
-    to: 'gpt-5.2-codex',
-    color: 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400'
-  },
-  {
-    label: 'GPT-5.1 Codex',
-    from: 'gpt-5.1-codex',
-    to: 'gpt-5.1-codex',
-    color:
-      'bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400'
-  },
-  {
-    label: 'Codex Max',
-    from: 'gpt-5.1-codex-max',
-    to: 'gpt-5.1-codex-max',
-    color:
-      'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400'
-  },
-  {
-    label: 'Codex Mini',
-    from: 'gpt-5.1-codex-mini',
-    to: 'gpt-5.1-codex-mini',
-    color:
-      'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400'
-  },
-  {
-    label: 'Max->Codex',
-    from: 'gpt-5.1-codex-max',
-    to: 'gpt-5.1-codex',
-    color: 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400'
-  }
-]
-
-// Preset mappings for quick add - Gemini
-const geminiPresetMappings = [
-  {
-    label: 'Flash',
-    from: 'gemini-2.0-flash',
-    to: 'gemini-2.0-flash',
-    color: 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400'
-  },
-  {
-    label: 'Flash Lite',
-    from: 'gemini-2.0-flash-lite',
-    to: 'gemini-2.0-flash-lite',
-    color:
-      'bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400'
-  },
-  {
-    label: '1.5 Pro',
-    from: 'gemini-1.5-pro',
-    to: 'gemini-1.5-pro',
-    color:
-      'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400'
-  },
-  {
-    label: '1.5 Flash',
-    from: 'gemini-1.5-flash',
-    to: 'gemini-1.5-flash',
-    color:
-      'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400'
-  }
-]
+const geminiHelpLinks = {
+  apiKey: 'https://aistudio.google.com/app/apikey',
+  aiStudioPricing: 'https://ai.google.dev/pricing',
+  gcpProject: 'https://console.cloud.google.com/welcome/new',
+  geminiWebActivation: 'https://gemini.google.com/gems/create?hl=en-US',
+  countryCheck: 'https://policies.google.com/country-association-form'
+}
 
 // Computed: current preset mappings based on platform
-const presetMappings = computed(() => {
-  if (form.platform === 'openai') return openaiPresetMappings
-  if (form.platform === 'gemini') return geminiPresetMappings
-  return anthropicPresetMappings
-})
-
-// Common HTTP error codes for quick selection
-const commonErrorCodes = [
-  { value: 401, label: 'Unauthorized' },
-  { value: 403, label: 'Forbidden' },
-  { value: 429, label: 'Rate Limit' },
-  { value: 500, label: 'Server Error' },
-  { value: 502, label: 'Bad Gateway' },
-  { value: 503, label: 'Unavailable' },
-  { value: 529, label: 'Overloaded' }
-]
+const presetMappings = computed(() => getPresetMappingsByPlatform(form.platform))
 
 const form = reactive({
   name: '',
@@ -1398,6 +1681,9 @@ const canExchangeCode = computed(() => {
   if (form.platform === 'gemini') {
     return authCode.trim() && geminiOAuth.sessionId.value && !geminiOAuth.loading.value
   }
+  if (form.platform === 'antigravity') {
+    return authCode.trim() && antigravityOAuth.sessionId.value && !antigravityOAuth.loading.value
+  }
   return authCode.trim() && oauth.sessionId.value && !oauth.loading.value
 })
 
@@ -1405,7 +1691,10 @@ const canExchangeCode = computed(() => {
 watch(
   () => props.show,
   (newVal) => {
-    if (!newVal) {
+    if (newVal) {
+      // Modal opened - fill related models
+      allowedModels.value = [...getModelsByPlatform(form.platform)]
+    } else {
       resetForm()
     }
   }
@@ -1442,10 +1731,15 @@ watch(
     if (newPlatform !== 'anthropic') {
       interceptWarmupRequests.value = false
     }
+    // Antigravity only supports OAuth
+    if (newPlatform === 'antigravity') {
+      accountCategory.value = 'oauth-based'
+    }
     // Reset OAuth states
     oauth.resetState()
     openaiOAuth.resetState()
     geminiOAuth.resetState()
+    antigravityOAuth.resetState()
   }
 )
 
@@ -1466,13 +1760,23 @@ watch(
   { immediate: true }
 )
 
-const handleSelectGeminiOAuthType = (oauthType: 'code_assist' | 'ai_studio') => {
+const handleSelectGeminiOAuthType = (oauthType: 'code_assist' | 'google_one' | 'ai_studio') => {
   if (oauthType === 'ai_studio' && !geminiAIStudioOAuthEnabled.value) {
     appStore.showError(t('admin.accounts.oauth.gemini.aiStudioNotConfigured'))
     return
   }
   geminiOAuthType.value = oauthType
 }
+
+// Auto-fill related models when switching to whitelist mode or changing platform
+watch(
+  [modelRestrictionMode, () => form.platform],
+  ([newMode]) => {
+    if (newMode === 'whitelist') {
+      allowedModels.value = [...getModelsByPlatform(form.platform)]
+    }
+  }
+)
 
 // Model mapping helpers
 const addModelMapping = () => {
@@ -1484,9 +1788,7 @@ const removeModelMapping = (index: number) => {
 }
 
 const addPresetMapping = (from: string, to: string) => {
-  // Check if mapping already exists
-  const exists = modelMappings.value.some((m) => m.from === from)
-  if (exists) {
+  if (modelMappings.value.some((m) => m.from === from)) {
     appStore.showInfo(t('admin.accounts.mappingExists', { model: from }))
     return
   }
@@ -1526,28 +1828,6 @@ const removeErrorCode = (code: number) => {
   }
 }
 
-const buildModelMappingObject = (): Record<string, string> | null => {
-  const mapping: Record<string, string> = {}
-
-  if (modelRestrictionMode.value === 'whitelist') {
-    // Whitelist mode: map model to itself
-    for (const model of allowedModels.value) {
-      mapping[model] = model
-    }
-  } else {
-    // Mapping mode: use custom mappings
-    for (const m of modelMappings.value) {
-      const from = m.from.trim()
-      const to = m.to.trim()
-      if (from && to) {
-        mapping[from] = to
-      }
-    }
-  }
-
-  return Object.keys(mapping).length > 0 ? mapping : null
-}
-
 // Methods
 const resetForm = () => {
   step.value = 1
@@ -1565,7 +1845,7 @@ const resetForm = () => {
   apiKeyValue.value = ''
   modelMappings.value = []
   modelRestrictionMode.value = 'whitelist'
-  allowedModels.value = []
+  allowedModels.value = [...claudeModels] // Default fill related models
   customErrorCodesEnabled.value = false
   selectedErrorCodes.value = []
   customErrorCodeInput.value = null
@@ -1574,6 +1854,7 @@ const resetForm = () => {
   oauth.resetState()
   openaiOAuth.resetState()
   geminiOAuth.resetState()
+  antigravityOAuth.resetState()
   oauthFlowRef.value?.reset()
 }
 
@@ -1613,7 +1894,7 @@ const handleSubmit = async () => {
   }
 
   // Add model mapping if configured
-  const modelMapping = buildModelMappingObject()
+  const modelMapping = buildModelMappingObject(modelRestrictionMode.value, allowedModels.value, modelMappings.value)
   if (modelMapping) {
     credentials.model_mapping = modelMapping
   }
@@ -1652,6 +1933,7 @@ const goBackToBasicInfo = () => {
   oauth.resetState()
   openaiOAuth.resetState()
   geminiOAuth.resetState()
+  antigravityOAuth.resetState()
   oauthFlowRef.value?.reset()
 }
 
@@ -1660,114 +1942,134 @@ const handleGenerateUrl = async () => {
     await openaiOAuth.generateAuthUrl(form.proxy_id)
   } else if (form.platform === 'gemini') {
     await geminiOAuth.generateAuthUrl(form.proxy_id, oauthFlowRef.value?.projectId, geminiOAuthType.value)
+  } else if (form.platform === 'antigravity') {
+    await antigravityOAuth.generateAuthUrl(form.proxy_id)
   } else {
     await oauth.generateAuthUrl(addMethod.value, form.proxy_id)
   }
 }
 
-const handleExchangeCode = async () => {
-  const authCode = oauthFlowRef.value?.authCode || ''
+// Create account and handle success/failure
+const createAccountAndFinish = async (
+  platform: AccountPlatform,
+  type: AccountType,
+  credentials: Record<string, unknown>,
+  extra?: Record<string, unknown>
+) => {
+  await adminAPI.accounts.create({
+    name: form.name,
+    platform,
+    type,
+    credentials,
+    extra,
+    proxy_id: form.proxy_id,
+    concurrency: form.concurrency,
+    priority: form.priority,
+    group_ids: form.group_ids
+  })
+  appStore.showSuccess(t('admin.accounts.accountCreated'))
+  emit('created')
+  handleClose()
+}
 
-  // For OpenAI
-  if (form.platform === 'openai') {
-    if (!authCode.trim() || !openaiOAuth.sessionId.value) return
+// OpenAI OAuth 授权码兑换
+const handleOpenAIExchange = async (authCode: string) => {
+  if (!authCode.trim() || !openaiOAuth.sessionId.value) return
 
-    openaiOAuth.loading.value = true
-    openaiOAuth.error.value = ''
+  openaiOAuth.loading.value = true
+  openaiOAuth.error.value = ''
 
-    try {
-      const tokenInfo = await openaiOAuth.exchangeAuthCode(
-        authCode.trim(),
-        openaiOAuth.sessionId.value,
-        form.proxy_id
-      )
+  try {
+    const tokenInfo = await openaiOAuth.exchangeAuthCode(
+      authCode.trim(),
+      openaiOAuth.sessionId.value,
+      form.proxy_id
+    )
+    if (!tokenInfo) return
 
-      if (!tokenInfo) {
-        return // Error already handled by composable
-      }
-
-      const credentials = openaiOAuth.buildCredentials(tokenInfo)
-      const extra = openaiOAuth.buildExtraInfo(tokenInfo)
-
-      // Note: intercept_warmup_requests is Anthropic-only, not applicable to OpenAI
-
-      await adminAPI.accounts.create({
-        name: form.name,
-        platform: 'openai',
-        type: 'oauth',
-        credentials,
-        extra,
-        proxy_id: form.proxy_id,
-        concurrency: form.concurrency,
-        priority: form.priority,
-        group_ids: form.group_ids
-      })
-
-      appStore.showSuccess(t('admin.accounts.accountCreated'))
-      emit('created')
-      handleClose()
-    } catch (error: any) {
-      openaiOAuth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
-      appStore.showError(openaiOAuth.error.value)
-    } finally {
-      openaiOAuth.loading.value = false
-    }
-    return
+    const credentials = openaiOAuth.buildCredentials(tokenInfo)
+    const extra = openaiOAuth.buildExtraInfo(tokenInfo)
+    await createAccountAndFinish('openai', 'oauth', credentials, extra)
+  } catch (error: any) {
+    openaiOAuth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
+    appStore.showError(openaiOAuth.error.value)
+  } finally {
+    openaiOAuth.loading.value = false
   }
+}
 
-  // For Gemini
-  if (form.platform === 'gemini') {
-    if (!authCode.trim() || !geminiOAuth.sessionId.value) return
+// Gemini OAuth 授权码兑换
+const handleGeminiExchange = async (authCode: string) => {
+  if (!authCode.trim() || !geminiOAuth.sessionId.value) return
 
-    geminiOAuth.loading.value = true
-    geminiOAuth.error.value = ''
+  geminiOAuth.loading.value = true
+  geminiOAuth.error.value = ''
 
-    try {
-      const stateFromInput = oauthFlowRef.value?.oauthState || ''
-      const stateToUse = stateFromInput || geminiOAuth.state.value
-      if (!stateToUse) {
-        geminiOAuth.error.value = t('admin.accounts.oauth.authFailed')
-        appStore.showError(geminiOAuth.error.value)
-        return
-      }
-
-      const tokenInfo = await geminiOAuth.exchangeAuthCode({
-        code: authCode.trim(),
-        sessionId: geminiOAuth.sessionId.value,
-        state: stateToUse,
-        proxyId: form.proxy_id,
-        oauthType: geminiOAuthType.value
-      })
-      if (!tokenInfo) return
-
-      const credentials = geminiOAuth.buildCredentials(tokenInfo)
-
-      // Note: intercept_warmup_requests is Anthropic-only, not applicable to Gemini
-
-      await adminAPI.accounts.create({
-        name: form.name,
-        platform: 'gemini',
-        type: 'oauth',
-        credentials,
-        proxy_id: form.proxy_id,
-        concurrency: form.concurrency,
-        priority: form.priority,
-        group_ids: form.group_ids
-      })
-
-      appStore.showSuccess(t('admin.accounts.accountCreated'))
-      emit('created')
-      handleClose()
-    } catch (error: any) {
-      geminiOAuth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
+  try {
+    const stateFromInput = oauthFlowRef.value?.oauthState || ''
+    const stateToUse = stateFromInput || geminiOAuth.state.value
+    if (!stateToUse) {
+      geminiOAuth.error.value = t('admin.accounts.oauth.authFailed')
       appStore.showError(geminiOAuth.error.value)
-    } finally {
-      geminiOAuth.loading.value = false
+      return
     }
-    return
-  }
 
-  // For Anthropic
+    const tokenInfo = await geminiOAuth.exchangeAuthCode({
+      code: authCode.trim(),
+      sessionId: geminiOAuth.sessionId.value,
+      state: stateToUse,
+      proxyId: form.proxy_id,
+      oauthType: geminiOAuthType.value
+    })
+    if (!tokenInfo) return
+
+    const credentials = geminiOAuth.buildCredentials(tokenInfo)
+    await createAccountAndFinish('gemini', 'oauth', credentials)
+  } catch (error: any) {
+    geminiOAuth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
+    appStore.showError(geminiOAuth.error.value)
+  } finally {
+    geminiOAuth.loading.value = false
+  }
+}
+
+// Antigravity OAuth 授权码兑换
+const handleAntigravityExchange = async (authCode: string) => {
+  if (!authCode.trim() || !antigravityOAuth.sessionId.value) return
+
+  antigravityOAuth.loading.value = true
+  antigravityOAuth.error.value = ''
+
+  try {
+    const stateFromInput = oauthFlowRef.value?.oauthState || ''
+    const stateToUse = stateFromInput || antigravityOAuth.state.value
+    if (!stateToUse) {
+      antigravityOAuth.error.value = t('admin.accounts.oauth.authFailed')
+      appStore.showError(antigravityOAuth.error.value)
+      return
+    }
+
+    const tokenInfo = await antigravityOAuth.exchangeAuthCode({
+      code: authCode.trim(),
+      sessionId: antigravityOAuth.sessionId.value,
+      state: stateToUse,
+      proxyId: form.proxy_id
+    })
+    if (!tokenInfo) return
+
+    const credentials = antigravityOAuth.buildCredentials(tokenInfo)
+    const extra = mixedScheduling.value ? { mixed_scheduling: true } : undefined
+    await createAccountAndFinish('antigravity', 'oauth', credentials, extra)
+  } catch (error: any) {
+    antigravityOAuth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
+    appStore.showError(antigravityOAuth.error.value)
+  } finally {
+    antigravityOAuth.loading.value = false
+  }
+}
+
+// Anthropic OAuth 授权码兑换
+const handleAnthropicExchange = async (authCode: string) => {
   if (!authCode.trim() || !oauth.sessionId.value) return
 
   oauth.loading.value = true
@@ -1787,33 +2089,32 @@ const handleExchangeCode = async () => {
     })
 
     const extra = oauth.buildExtraInfo(tokenInfo)
-
-    // Merge interceptWarmupRequests into credentials
     const credentials = {
       ...tokenInfo,
       ...(interceptWarmupRequests.value ? { intercept_warmup_requests: true } : {})
     }
-
-    await adminAPI.accounts.create({
-      name: form.name,
-      platform: form.platform,
-      type: addMethod.value, // Use addMethod as type: 'oauth' or 'setup-token'
-      credentials,
-      extra,
-      proxy_id: form.proxy_id,
-      concurrency: form.concurrency,
-      priority: form.priority,
-      group_ids: form.group_ids
-    })
-
-    appStore.showSuccess(t('admin.accounts.accountCreated'))
-    emit('created')
-    handleClose()
+    await createAccountAndFinish(form.platform, addMethod.value as AccountType, credentials, extra)
   } catch (error: any) {
     oauth.error.value = error.response?.data?.detail || t('admin.accounts.oauth.authFailed')
     appStore.showError(oauth.error.value)
   } finally {
     oauth.loading.value = false
+  }
+}
+
+// 主入口：根据平台路由到对应处理函数
+const handleExchangeCode = async () => {
+  const authCode = oauthFlowRef.value?.authCode || ''
+
+  switch (form.platform) {
+    case 'openai':
+      return handleOpenAIExchange(authCode)
+    case 'gemini':
+      return handleGeminiExchange(authCode)
+    case 'antigravity':
+      return handleAntigravityExchange(authCode)
+    default:
+      return handleAnthropicExchange(authCode)
   }
 }
 

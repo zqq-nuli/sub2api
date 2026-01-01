@@ -8,16 +8,15 @@ package main
 
 import (
 	"context"
+	"github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	"github.com/Wei-Shaw/sub2api/internal/handler/admin"
-	"github.com/Wei-Shaw/sub2api/internal/infrastructure"
 	"github.com/Wei-Shaw/sub2api/internal/repository"
 	"github.com/Wei-Shaw/sub2api/internal/server"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/redis/go-redis/v9"
-	"gorm.io/gorm"
 	"log"
 	"net/http"
 	"time"
@@ -25,6 +24,7 @@ import (
 
 import (
 	_ "embed"
+	_ "github.com/Wei-Shaw/sub2api/ent/runtime"
 )
 
 // Injectors from wire.go:
@@ -34,16 +34,19 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	if err != nil {
 		return nil, err
 	}
-	db, err := infrastructure.ProvideDB(configConfig)
+	client, err := repository.ProvideEnt(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	userRepository := repository.NewUserRepository(db)
-	settingRepository := repository.NewSettingRepository(db)
-	cryptoService := infrastructure.ProvideCryptoService(configConfig)
-	settingService := service.NewSettingService(settingRepository, configConfig, cryptoService)
-	client := infrastructure.ProvideRedis(configConfig)
-	emailCache := repository.NewEmailCache(client)
+	db, err := repository.ProvideSQLDB(client)
+	if err != nil {
+		return nil, err
+	}
+	userRepository := repository.NewUserRepository(client, db)
+	settingRepository := repository.NewSettingRepository(client)
+	settingService := service.NewSettingService(settingRepository, configConfig)
+	redisClient := repository.ProvideRedis(configConfig)
+	emailCache := repository.NewEmailCache(redisClient)
 	emailService := service.NewEmailService(settingRepository, emailCache)
 	turnstileVerifier := repository.NewTurnstileVerifier()
 	turnstileService := service.NewTurnstileService(settingService, turnstileVerifier)
@@ -52,27 +55,27 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	userService := service.NewUserService(userRepository)
 	authHandler := handler.NewAuthHandler(configConfig, authService, userService)
 	userHandler := handler.NewUserHandler(userService)
-	apiKeyRepository := repository.NewApiKeyRepository(db)
-	groupRepository := repository.NewGroupRepository(db)
-	userSubscriptionRepository := repository.NewUserSubscriptionRepository(db)
-	apiKeyCache := repository.NewApiKeyCache(client)
+	apiKeyRepository := repository.NewApiKeyRepository(client)
+	groupRepository := repository.NewGroupRepository(client, db)
+	userSubscriptionRepository := repository.NewUserSubscriptionRepository(client)
+	apiKeyCache := repository.NewApiKeyCache(redisClient)
 	apiKeyService := service.NewApiKeyService(apiKeyRepository, userRepository, groupRepository, userSubscriptionRepository, apiKeyCache, configConfig)
 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
-	usageLogRepository := repository.NewUsageLogRepository(db)
+	usageLogRepository := repository.NewUsageLogRepository(client, db)
 	usageService := service.NewUsageService(usageLogRepository, userRepository)
 	usageHandler := handler.NewUsageHandler(usageService, apiKeyService)
-	redeemCodeRepository := repository.NewRedeemCodeRepository(db)
-	billingCache := repository.NewBillingCache(client)
+	redeemCodeRepository := repository.NewRedeemCodeRepository(client)
+	billingCache := repository.NewBillingCache(redisClient)
 	billingCacheService := service.NewBillingCacheService(billingCache, userRepository, userSubscriptionRepository, configConfig)
 	subscriptionService := service.NewSubscriptionService(groupRepository, userSubscriptionRepository, billingCacheService)
-	redeemCache := repository.NewRedeemCache(client)
-	redeemService := service.NewRedeemService(redeemCodeRepository, userRepository, subscriptionService, redeemCache, billingCacheService)
+	redeemCache := repository.NewRedeemCache(redisClient)
+	redeemService := service.NewRedeemService(redeemCodeRepository, userRepository, subscriptionService, redeemCache, billingCacheService, client)
 	redeemHandler := handler.NewRedeemHandler(redeemService)
 	subscriptionHandler := handler.NewSubscriptionHandler(subscriptionService)
 	dashboardService := service.NewDashboardService(usageLogRepository)
 	dashboardHandler := admin.NewDashboardHandler(dashboardService)
-	accountRepository := repository.NewAccountRepository(db)
-	proxyRepository := repository.NewProxyRepository(db)
+	accountRepository := repository.NewAccountRepository(client, db)
+	proxyRepository := repository.NewProxyRepository(client, db)
 	proxyExitInfoProber := repository.NewProxyExitInfoProber()
 	adminService := service.NewAdminService(userRepository, groupRepository, accountRepository, proxyRepository, apiKeyRepository, redeemCodeRepository, billingCacheService, proxyExitInfoProber)
 	adminUserHandler := admin.NewUserHandler(adminService)
@@ -84,67 +87,66 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	geminiOAuthClient := repository.NewGeminiOAuthClient(configConfig)
 	geminiCliCodeAssistClient := repository.NewGeminiCliCodeAssistClient()
 	geminiOAuthService := service.NewGeminiOAuthService(proxyRepository, geminiOAuthClient, geminiCliCodeAssistClient, configConfig)
-	rateLimitService := service.NewRateLimitService(accountRepository, configConfig)
+	geminiQuotaService := service.NewGeminiQuotaService(configConfig, settingRepository)
+	rateLimitService := service.NewRateLimitService(accountRepository, usageLogRepository, configConfig, geminiQuotaService)
 	claudeUsageFetcher := repository.NewClaudeUsageFetcher()
-	accountUsageService := service.NewAccountUsageService(accountRepository, usageLogRepository, claudeUsageFetcher)
-	geminiTokenCache := repository.NewGeminiTokenCache(client)
+	accountUsageService := service.NewAccountUsageService(accountRepository, usageLogRepository, claudeUsageFetcher, geminiQuotaService)
+	geminiTokenCache := repository.NewGeminiTokenCache(redisClient)
 	geminiTokenProvider := service.NewGeminiTokenProvider(accountRepository, geminiTokenCache, geminiOAuthService)
+	gatewayCache := repository.NewGatewayCache(redisClient)
+	antigravityOAuthService := service.NewAntigravityOAuthService(proxyRepository)
+	antigravityTokenProvider := service.NewAntigravityTokenProvider(accountRepository, geminiTokenCache, antigravityOAuthService)
 	httpUpstream := repository.NewHTTPUpstream(configConfig)
-	accountTestService := service.NewAccountTestService(accountRepository, oAuthService, openAIOAuthService, geminiTokenProvider, httpUpstream)
-	concurrencyCache := repository.NewConcurrencyCache(client)
-	concurrencyService := service.NewConcurrencyService(concurrencyCache)
+	antigravityGatewayService := service.NewAntigravityGatewayService(accountRepository, gatewayCache, antigravityTokenProvider, rateLimitService, httpUpstream)
+	accountTestService := service.NewAccountTestService(accountRepository, oAuthService, openAIOAuthService, geminiTokenProvider, antigravityGatewayService, httpUpstream)
+	concurrencyCache := repository.ProvideConcurrencyCache(redisClient, configConfig)
+	concurrencyService := service.ProvideConcurrencyService(concurrencyCache, accountRepository, configConfig)
 	crsSyncService := service.NewCRSSyncService(accountRepository, proxyRepository, oAuthService, openAIOAuthService, geminiOAuthService)
 	accountHandler := admin.NewAccountHandler(adminService, oAuthService, openAIOAuthService, geminiOAuthService, rateLimitService, accountUsageService, accountTestService, concurrencyService, crsSyncService)
 	oAuthHandler := admin.NewOAuthHandler(oAuthService)
 	openAIOAuthHandler := admin.NewOpenAIOAuthHandler(openAIOAuthService, adminService)
 	geminiOAuthHandler := admin.NewGeminiOAuthHandler(geminiOAuthService)
+	antigravityOAuthHandler := admin.NewAntigravityOAuthHandler(antigravityOAuthService)
 	proxyHandler := admin.NewProxyHandler(adminService)
 	adminRedeemHandler := admin.NewRedeemHandler(adminService)
-	settingHandler := admin.NewSettingHandler(settingService, emailService)
-	updateCache := repository.NewUpdateCache(client)
+	settingHandler := admin.NewSettingHandler(settingService, emailService, turnstileService)
+	updateCache := repository.NewUpdateCache(redisClient)
 	gitHubReleaseClient := repository.NewGitHubReleaseClient()
 	serviceBuildInfo := provideServiceBuildInfo(buildInfo)
 	updateService := service.ProvideUpdateService(updateCache, gitHubReleaseClient, serviceBuildInfo)
 	systemHandler := handler.ProvideSystemHandler(updateService)
 	adminSubscriptionHandler := admin.NewSubscriptionHandler(subscriptionService)
 	adminUsageHandler := admin.NewUsageHandler(usageService, apiKeyService, adminService)
-	orderRepository := repository.NewOrderRepository(db)
-	orderService := service.NewOrderService(orderRepository, userRepository, billingCacheService)
-	orderHandler := admin.NewOrderHandler(orderService)
-	rechargeProductRepository := repository.NewRechargeProductRepository(db)
-	rechargeProductService := service.NewRechargeProductService(rechargeProductRepository, client)
-	rechargeProductHandler := admin.NewRechargeProductHandler(rechargeProductService)
-	adminHandlers := handler.ProvideAdminHandlers(dashboardHandler, adminUserHandler, groupHandler, accountHandler, oAuthHandler, openAIOAuthHandler, geminiOAuthHandler, proxyHandler, adminRedeemHandler, settingHandler, systemHandler, adminSubscriptionHandler, adminUsageHandler, orderHandler, rechargeProductHandler)
-	gatewayCache := repository.NewGatewayCache(client)
+	userAttributeDefinitionRepository := repository.NewUserAttributeDefinitionRepository(client)
+	userAttributeValueRepository := repository.NewUserAttributeValueRepository(client)
+	userAttributeService := service.NewUserAttributeService(userAttributeDefinitionRepository, userAttributeValueRepository)
+	userAttributeHandler := admin.NewUserAttributeHandler(userAttributeService)
+	adminHandlers := handler.ProvideAdminHandlers(dashboardHandler, adminUserHandler, groupHandler, accountHandler, oAuthHandler, openAIOAuthHandler, geminiOAuthHandler, antigravityOAuthHandler, proxyHandler, adminRedeemHandler, settingHandler, systemHandler, adminSubscriptionHandler, adminUsageHandler, userAttributeHandler)
 	pricingRemoteClient := repository.NewPricingRemoteClient()
 	pricingService, err := service.ProvidePricingService(configConfig, pricingRemoteClient)
 	if err != nil {
 		return nil, err
 	}
 	billingService := service.NewBillingService(configConfig, pricingService)
-	identityCache := repository.NewIdentityCache(client)
+	identityCache := repository.NewIdentityCache(redisClient)
 	identityService := service.NewIdentityService(identityCache)
 	timingWheelService := service.ProvideTimingWheelService()
 	deferredService := service.ProvideDeferredService(accountRepository, timingWheelService)
-	gatewayService := service.NewGatewayService(accountRepository, usageLogRepository, userRepository, userSubscriptionRepository, gatewayCache, configConfig, billingService, rateLimitService, billingCacheService, identityService, httpUpstream, deferredService)
-	geminiMessagesCompatService := service.NewGeminiMessagesCompatService(accountRepository, gatewayCache, geminiTokenProvider, rateLimitService, httpUpstream)
-	gatewayHandler := handler.NewGatewayHandler(gatewayService, geminiMessagesCompatService, userService, concurrencyService, billingCacheService)
-	openAIGatewayService := service.NewOpenAIGatewayService(accountRepository, usageLogRepository, userRepository, userSubscriptionRepository, gatewayCache, configConfig, billingService, rateLimitService, billingCacheService, httpUpstream, deferredService)
+	gatewayService := service.NewGatewayService(accountRepository, groupRepository, usageLogRepository, userRepository, userSubscriptionRepository, gatewayCache, configConfig, concurrencyService, billingService, rateLimitService, billingCacheService, identityService, httpUpstream, deferredService)
+	geminiMessagesCompatService := service.NewGeminiMessagesCompatService(accountRepository, groupRepository, gatewayCache, geminiTokenProvider, rateLimitService, httpUpstream, antigravityGatewayService)
+	gatewayHandler := handler.NewGatewayHandler(gatewayService, geminiMessagesCompatService, antigravityGatewayService, userService, concurrencyService, billingCacheService)
+	openAIGatewayService := service.NewOpenAIGatewayService(accountRepository, usageLogRepository, userRepository, userSubscriptionRepository, gatewayCache, configConfig, concurrencyService, billingService, rateLimitService, billingCacheService, httpUpstream, deferredService)
 	openAIGatewayHandler := handler.NewOpenAIGatewayHandler(openAIGatewayService, concurrencyService, billingCacheService)
 	handlerSettingHandler := handler.ProvideSettingHandler(settingService, buildInfo)
-	oidcssoService := service.ProvideOIDCSSOService(settingService, userRepository, authService)
-	ssoHandler := handler.NewSSOHandler(oidcssoService, settingService)
-	paymentService := service.NewPaymentService(orderRepository, userRepository, rechargeProductRepository, settingService, billingCacheService, client)
-	handlerOrderHandler := handler.NewOrderHandler(orderService, paymentService, rechargeProductService)
-	paymentHandler := handler.NewPaymentHandler(paymentService, settingService)
-	handlers := handler.ProvideHandlers(authHandler, userHandler, apiKeyHandler, usageHandler, redeemHandler, subscriptionHandler, adminHandlers, gatewayHandler, openAIGatewayHandler, handlerSettingHandler, ssoHandler, handlerOrderHandler, paymentHandler)
+	handlers := handler.ProvideHandlers(authHandler, userHandler, apiKeyHandler, usageHandler, redeemHandler, subscriptionHandler, adminHandlers, gatewayHandler, openAIGatewayHandler, handlerSettingHandler)
 	jwtAuthMiddleware := middleware.NewJWTAuthMiddleware(authService, userService)
 	adminAuthMiddleware := middleware.NewAdminAuthMiddleware(authService, userService, settingService)
 	apiKeyAuthMiddleware := middleware.NewApiKeyAuthMiddleware(apiKeyService, subscriptionService, configConfig)
 	engine := server.ProvideRouter(configConfig, handlers, jwtAuthMiddleware, adminAuthMiddleware, apiKeyAuthMiddleware, apiKeyService, subscriptionService)
 	httpServer := server.ProvideHTTPServer(configConfig, engine)
-	tokenRefreshService := service.ProvideTokenRefreshService(accountRepository, oAuthService, openAIOAuthService, geminiOAuthService, configConfig)
-	v := provideCleanup(db, client, tokenRefreshService, pricingService, emailQueueService, oAuthService, openAIOAuthService, geminiOAuthService, oidcssoService)
+	tokenRefreshService := service.ProvideTokenRefreshService(accountRepository, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, configConfig)
+	antigravityQuotaRefresher := service.ProvideAntigravityQuotaRefresher(accountRepository, proxyRepository, antigravityOAuthService, configConfig)
+	v := provideCleanup(client, redisClient, tokenRefreshService, pricingService, emailQueueService, billingCacheService, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, antigravityQuotaRefresher)
 	application := &Application{
 		Server:  httpServer,
 		Cleanup: v,
@@ -167,15 +169,17 @@ func provideServiceBuildInfo(buildInfo handler.BuildInfo) service.BuildInfo {
 }
 
 func provideCleanup(
-	db *gorm.DB,
+	entClient *ent.Client,
 	rdb *redis.Client,
 	tokenRefresh *service.TokenRefreshService,
 	pricing *service.PricingService,
 	emailQueue *service.EmailQueueService,
+	billingCache *service.BillingCacheService,
 	oauth *service.OAuthService,
 	openaiOAuth *service.OpenAIOAuthService,
 	geminiOAuth *service.GeminiOAuthService,
-	sso *service.OIDCSSOService,
+	antigravityOAuth *service.AntigravityOAuthService,
+	antigravityQuota *service.AntigravityQuotaRefresher,
 ) func() {
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -197,6 +201,10 @@ func provideCleanup(
 				emailQueue.Stop()
 				return nil
 			}},
+			{"BillingCacheService", func() error {
+				billingCache.Stop()
+				return nil
+			}},
 			{"OAuthService", func() error {
 				oauth.Stop()
 				return nil
@@ -209,19 +217,19 @@ func provideCleanup(
 				geminiOAuth.Stop()
 				return nil
 			}},
-			{"OIDCSSOService", func() error {
-				sso.Stop()
+			{"AntigravityOAuthService", func() error {
+				antigravityOAuth.Stop()
+				return nil
+			}},
+			{"AntigravityQuotaRefresher", func() error {
+				antigravityQuota.Stop()
 				return nil
 			}},
 			{"Redis", func() error {
 				return rdb.Close()
 			}},
-			{"Database", func() error {
-				sqlDB, err := db.DB()
-				if err != nil {
-					return err
-				}
-				return sqlDB.Close()
+			{"Ent", func() error {
+				return entClient.Close()
 			}},
 		}
 

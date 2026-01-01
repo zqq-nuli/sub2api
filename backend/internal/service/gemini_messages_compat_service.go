@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/geminicli"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/googleapi"
 
@@ -33,26 +34,32 @@ const (
 )
 
 type GeminiMessagesCompatService struct {
-	accountRepo      AccountRepository
-	cache            GatewayCache
-	tokenProvider    *GeminiTokenProvider
-	rateLimitService *RateLimitService
-	httpUpstream     HTTPUpstream
+	accountRepo               AccountRepository
+	groupRepo                 GroupRepository
+	cache                     GatewayCache
+	tokenProvider             *GeminiTokenProvider
+	rateLimitService          *RateLimitService
+	httpUpstream              HTTPUpstream
+	antigravityGatewayService *AntigravityGatewayService
 }
 
 func NewGeminiMessagesCompatService(
 	accountRepo AccountRepository,
+	groupRepo GroupRepository,
 	cache GatewayCache,
 	tokenProvider *GeminiTokenProvider,
 	rateLimitService *RateLimitService,
 	httpUpstream HTTPUpstream,
+	antigravityGatewayService *AntigravityGatewayService,
 ) *GeminiMessagesCompatService {
 	return &GeminiMessagesCompatService{
-		accountRepo:      accountRepo,
-		cache:            cache,
-		tokenProvider:    tokenProvider,
-		rateLimitService: rateLimitService,
-		httpUpstream:     httpUpstream,
+		accountRepo:               accountRepo,
+		groupRepo:                 groupRepo,
+		cache:                     cache,
+		tokenProvider:             tokenProvider,
+		rateLimitService:          rateLimitService,
+		httpUpstream:              httpUpstream,
+		antigravityGatewayService: antigravityGatewayService,
 	}
 }
 
@@ -66,26 +73,83 @@ func (s *GeminiMessagesCompatService) SelectAccountForModel(ctx context.Context,
 }
 
 func (s *GeminiMessagesCompatService) SelectAccountForModelWithExclusions(ctx context.Context, groupID *int64, sessionHash string, requestedModel string, excludedIDs map[int64]struct{}) (*Account, error) {
+	// 优先检查 context 中的强制平台（/antigravity 路由）
+	var platform string
+	forcePlatform, hasForcePlatform := ctx.Value(ctxkey.ForcePlatform).(string)
+	if hasForcePlatform && forcePlatform != "" {
+		platform = forcePlatform
+	} else if groupID != nil {
+		// 根据分组 platform 决定查询哪种账号
+		group, err := s.groupRepo.GetByID(ctx, *groupID)
+		if err != nil {
+			return nil, fmt.Errorf("get group failed: %w", err)
+		}
+		platform = group.Platform
+	} else {
+		// 无分组时只使用原生 gemini 平台
+		platform = PlatformGemini
+	}
+
+	// gemini 分组支持混合调度（包含启用了 mixed_scheduling 的 antigravity 账户）
+	// 注意：强制平台模式不走混合调度
+	useMixedScheduling := platform == PlatformGemini && !hasForcePlatform
+	var queryPlatforms []string
+	if useMixedScheduling {
+		queryPlatforms = []string{PlatformGemini, PlatformAntigravity}
+	} else {
+		queryPlatforms = []string{platform}
+	}
+
 	cacheKey := "gemini:" + sessionHash
+
 	if sessionHash != "" {
 		accountID, err := s.cache.GetSessionAccountID(ctx, cacheKey)
 		if err == nil && accountID > 0 {
 			if _, excluded := excludedIDs[accountID]; !excluded {
 				account, err := s.accountRepo.GetByID(ctx, accountID)
-				if err == nil && account.IsSchedulable() && account.Platform == PlatformGemini && (requestedModel == "" || account.IsModelSupported(requestedModel)) {
-					_ = s.cache.RefreshSessionTTL(ctx, cacheKey, geminiStickySessionTTL)
-					return account, nil
+				// 检查账号是否有效：原生平台直接匹配，antigravity 需要启用混合调度
+				if err == nil && account.IsSchedulable() && (requestedModel == "" || s.isModelSupportedByAccount(account, requestedModel)) {
+					valid := false
+					if account.Platform == platform {
+						valid = true
+					} else if useMixedScheduling && account.Platform == PlatformAntigravity && account.IsMixedSchedulingEnabled() {
+						valid = true
+					}
+					if valid {
+						usable := true
+						if s.rateLimitService != nil && requestedModel != "" {
+							ok, err := s.rateLimitService.PreCheckUsage(ctx, account, requestedModel)
+							if err != nil {
+								log.Printf("[Gemini PreCheck] Account %d precheck error: %v", account.ID, err)
+							}
+							if !ok {
+								usable = false
+							}
+						}
+						if usable {
+							_ = s.cache.RefreshSessionTTL(ctx, cacheKey, geminiStickySessionTTL)
+							return account, nil
+						}
+					}
 				}
 			}
 		}
 	}
 
+	// 查询可调度账户（强制平台模式：优先按分组查找，找不到再查全部）
 	var accounts []Account
 	var err error
 	if groupID != nil {
-		accounts, err = s.accountRepo.ListSchedulableByGroupIDAndPlatform(ctx, *groupID, PlatformGemini)
+		accounts, err = s.accountRepo.ListSchedulableByGroupIDAndPlatforms(ctx, *groupID, queryPlatforms)
+		if err != nil {
+			return nil, fmt.Errorf("query accounts failed: %w", err)
+		}
+		// 强制平台模式下，分组中找不到账户时回退查询全部
+		if len(accounts) == 0 && hasForcePlatform {
+			accounts, err = s.accountRepo.ListSchedulableByPlatforms(ctx, queryPlatforms)
+		}
 	} else {
-		accounts, err = s.accountRepo.ListSchedulableByPlatform(ctx, PlatformGemini)
+		accounts, err = s.accountRepo.ListSchedulableByPlatforms(ctx, queryPlatforms)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("query accounts failed: %w", err)
@@ -97,8 +161,22 @@ func (s *GeminiMessagesCompatService) SelectAccountForModelWithExclusions(ctx co
 		if _, excluded := excludedIDs[acc.ID]; excluded {
 			continue
 		}
-		if requestedModel != "" && !acc.IsModelSupported(requestedModel) {
+		// 混合调度模式下：原生平台直接通过，antigravity 需要启用 mixed_scheduling
+		// 非混合调度模式（antigravity 分组）：不需要过滤
+		if useMixedScheduling && acc.Platform == PlatformAntigravity && !acc.IsMixedSchedulingEnabled() {
 			continue
+		}
+		if requestedModel != "" && !s.isModelSupportedByAccount(acc, requestedModel) {
+			continue
+		}
+		if s.rateLimitService != nil && requestedModel != "" {
+			ok, err := s.rateLimitService.PreCheckUsage(ctx, acc, requestedModel)
+			if err != nil {
+				log.Printf("[Gemini PreCheck] Account %d precheck error: %v", acc.ID, err)
+			}
+			if !ok {
+				continue
+			}
 		}
 		if selected == nil {
 			selected = acc
@@ -137,6 +215,34 @@ func (s *GeminiMessagesCompatService) SelectAccountForModelWithExclusions(ctx co
 	}
 
 	return selected, nil
+}
+
+// isModelSupportedByAccount 根据账户平台检查模型支持
+func (s *GeminiMessagesCompatService) isModelSupportedByAccount(account *Account, requestedModel string) bool {
+	if account.Platform == PlatformAntigravity {
+		return IsAntigravityModelSupported(requestedModel)
+	}
+	return account.IsModelSupported(requestedModel)
+}
+
+// GetAntigravityGatewayService 返回 AntigravityGatewayService
+func (s *GeminiMessagesCompatService) GetAntigravityGatewayService() *AntigravityGatewayService {
+	return s.antigravityGatewayService
+}
+
+// HasAntigravityAccounts 检查是否有可用的 antigravity 账户
+func (s *GeminiMessagesCompatService) HasAntigravityAccounts(ctx context.Context, groupID *int64) (bool, error) {
+	var accounts []Account
+	var err error
+	if groupID != nil {
+		accounts, err = s.accountRepo.ListSchedulableByGroupIDAndPlatform(ctx, *groupID, PlatformAntigravity)
+	} else {
+		accounts, err = s.accountRepo.ListSchedulableByPlatform(ctx, PlatformAntigravity)
+	}
+	if err != nil {
+		return false, err
+	}
+	return len(accounts) > 0, nil
 }
 
 // SelectAccountForAIStudioEndpoints selects an account that is likely to succeed against
@@ -387,7 +493,7 @@ func (s *GeminiMessagesCompatService) Forward(ctx context.Context, c *gin.Contex
 		}
 		requestIDHeader = idHeader
 
-		resp, err = s.httpUpstream.Do(upstreamReq, proxyURL)
+		resp, err = s.httpUpstream.Do(upstreamReq, proxyURL, account.ID, account.Concurrency)
 		if err != nil {
 			if attempt < geminiMaxRetries {
 				log.Printf("Gemini account %d: upstream request failed, retry %d/%d: %v", account.ID, attempt, geminiMaxRetries, err)
@@ -640,7 +746,7 @@ func (s *GeminiMessagesCompatService) ForwardNative(ctx context.Context, c *gin.
 		}
 		requestIDHeader = idHeader
 
-		resp, err = s.httpUpstream.Do(upstreamReq, proxyURL)
+		resp, err = s.httpUpstream.Do(upstreamReq, proxyURL, account.ID, account.Concurrency)
 		if err != nil {
 			if attempt < geminiMaxRetries {
 				log.Printf("Gemini account %d: upstream request failed, retry %d/%d: %v", account.ID, attempt, geminiMaxRetries, err)
@@ -836,7 +942,10 @@ func sleepGeminiBackoff(attempt int) {
 	time.Sleep(sleepFor)
 }
 
-var sensitiveQueryParamRegex = regexp.MustCompile(`(?i)([?&](?:key|client_secret|access_token|refresh_token)=)[^&"\s]+`)
+var (
+	sensitiveQueryParamRegex = regexp.MustCompile(`(?i)([?&](?:key|client_secret|access_token|refresh_token)=)[^&"\s]+`)
+	retryInRegex             = regexp.MustCompile(`Please retry in ([0-9.]+)s`)
+)
 
 func sanitizeUpstreamErrorMessage(msg string) string {
 	if msg == "" {
@@ -1668,7 +1777,7 @@ func (s *GeminiMessagesCompatService) ForwardAIStudioGET(ctx context.Context, ac
 		return nil, fmt.Errorf("unsupported account type: %s", account.Type)
 	}
 
-	resp, err := s.httpUpstream.Do(req, proxyURL)
+	resp, err := s.httpUpstream.Do(req, proxyURL, account.ID, account.Concurrency)
 	if err != nil {
 		return nil, err
 	}
@@ -1798,16 +1907,48 @@ func (s *GeminiMessagesCompatService) handleGeminiUpstreamError(ctx context.Cont
 	if statusCode != 429 {
 		return
 	}
-	resetAt := parseGeminiRateLimitResetTime(body)
+
+	oauthType := account.GeminiOAuthType()
+	tierID := account.GeminiTierID()
+	projectID := strings.TrimSpace(account.GetCredential("project_id"))
+	isCodeAssist := account.IsGeminiCodeAssist()
+
+	resetAt := ParseGeminiRateLimitResetTime(body)
 	if resetAt == nil {
-		ra := time.Now().Add(5 * time.Minute)
+		// 根据账号类型使用不同的默认重置时间
+		var ra time.Time
+		if isCodeAssist {
+			// Code Assist: fallback cooldown by tier
+			cooldown := geminiCooldownForTier(tierID)
+			if s.rateLimitService != nil {
+				cooldown = s.rateLimitService.GeminiCooldown(ctx, account)
+			}
+			ra = time.Now().Add(cooldown)
+			log.Printf("[Gemini 429] Account %d (Code Assist, tier=%s, project=%s) rate limited, cooldown=%v", account.ID, tierID, projectID, time.Until(ra).Truncate(time.Second))
+		} else {
+			// API Key / AI Studio OAuth: PST 午夜
+			if ts := nextGeminiDailyResetUnix(); ts != nil {
+				ra = time.Unix(*ts, 0)
+				log.Printf("[Gemini 429] Account %d (API Key/AI Studio, type=%s) rate limited, reset at PST midnight (%v)", account.ID, account.Type, ra)
+			} else {
+				// 兜底：5 分钟
+				ra = time.Now().Add(5 * time.Minute)
+				log.Printf("[Gemini 429] Account %d rate limited, fallback to 5min", account.ID)
+			}
+		}
 		_ = s.accountRepo.SetRateLimited(ctx, account.ID, ra)
 		return
 	}
-	_ = s.accountRepo.SetRateLimited(ctx, account.ID, time.Unix(*resetAt, 0))
+
+	// 使用解析到的重置时间
+	resetTime := time.Unix(*resetAt, 0)
+	_ = s.accountRepo.SetRateLimited(ctx, account.ID, resetTime)
+	log.Printf("[Gemini 429] Account %d rate limited until %v (oauth_type=%s, tier=%s)",
+		account.ID, resetTime, oauthType, tierID)
 }
 
-func parseGeminiRateLimitResetTime(body []byte) *int64 {
+// ParseGeminiRateLimitResetTime 解析 Gemini 格式的 429 响应，返回重置时间的 Unix 时间戳
+func ParseGeminiRateLimitResetTime(body []byte) *int64 {
 	// Try to parse metadata.quotaResetDelay like "12.345s"
 	var parsed map[string]any
 	if err := json.Unmarshal(body, &parsed); err == nil {
@@ -1839,7 +1980,6 @@ func parseGeminiRateLimitResetTime(body []byte) *int64 {
 	}
 
 	// Match "Please retry in Xs"
-	retryInRegex := regexp.MustCompile(`Please retry in ([0-9.]+)s`)
 	matches := retryInRegex.FindStringSubmatch(string(body))
 	if len(matches) == 2 {
 		if dur, err := time.ParseDuration(matches[1] + "s"); err == nil {
@@ -1860,16 +2000,7 @@ func looksLikeGeminiDailyQuota(message string) bool {
 }
 
 func nextGeminiDailyResetUnix() *int64 {
-	loc, err := time.LoadLocation("America/Los_Angeles")
-	if err != nil {
-		// Fallback: PST without DST.
-		loc = time.FixedZone("PST", -8*3600)
-	}
-	now := time.Now().In(loc)
-	reset := time.Date(now.Year(), now.Month(), now.Day(), 0, 5, 0, 0, loc)
-	if !reset.After(now) {
-		reset = reset.Add(24 * time.Hour)
-	}
+	reset := geminiDailyResetTime(time.Now())
 	ts := reset.Unix()
 	return &ts
 }
@@ -2157,16 +2288,46 @@ func convertClaudeToolsToGeminiTools(tools any) []any {
 		if !ok {
 			continue
 		}
-		name, _ := tm["name"].(string)
-		desc, _ := tm["description"].(string)
-		params := tm["input_schema"]
+
+		var name, desc string
+		var params any
+
+		// 检查是否为 custom 类型工具 (MCP)
+		toolType, _ := tm["type"].(string)
+		if toolType == "custom" {
+			// Custom 格式: 从 custom 字段获取 description 和 input_schema
+			custom, ok := tm["custom"].(map[string]any)
+			if !ok {
+				continue
+			}
+			name, _ = tm["name"].(string)
+			desc, _ = custom["description"].(string)
+			params = custom["input_schema"]
+		} else {
+			// 标准格式: 从顶层字段获取
+			name, _ = tm["name"].(string)
+			desc, _ = tm["description"].(string)
+			params = tm["input_schema"]
+		}
+
 		if name == "" {
 			continue
 		}
+
+		// 为 nil params 提供默认值
+		if params == nil {
+			params = map[string]any{
+				"type":       "object",
+				"properties": map[string]any{},
+			}
+		}
+		// 清理 JSON Schema
+		cleanedParams := cleanToolSchema(params)
+
 		funcDecls = append(funcDecls, map[string]any{
 			"name":        name,
 			"description": desc,
-			"parameters":  params,
+			"parameters":  cleanedParams,
 		})
 	}
 
@@ -2177,6 +2338,41 @@ func convertClaudeToolsToGeminiTools(tools any) []any {
 		map[string]any{
 			"functionDeclarations": funcDecls,
 		},
+	}
+}
+
+// cleanToolSchema 清理工具的 JSON Schema，移除 Gemini 不支持的字段
+func cleanToolSchema(schema any) any {
+	if schema == nil {
+		return nil
+	}
+
+	switch v := schema.(type) {
+	case map[string]any:
+		cleaned := make(map[string]any)
+		for key, value := range v {
+			// 跳过不支持的字段
+			if key == "$schema" || key == "$id" || key == "$ref" ||
+				key == "additionalProperties" || key == "minLength" ||
+				key == "maxLength" || key == "minItems" || key == "maxItems" {
+				continue
+			}
+			// 递归清理嵌套对象
+			cleaned[key] = cleanToolSchema(value)
+		}
+		// 规范化 type 字段为大写
+		if typeVal, ok := cleaned["type"].(string); ok {
+			cleaned["type"] = strings.ToUpper(typeVal)
+		}
+		return cleaned
+	case []any:
+		cleaned := make([]any, len(v))
+		for i, item := range v {
+			cleaned[i] = cleanToolSchema(item)
+		}
+		return cleaned
+	default:
+		return v
 	}
 }
 

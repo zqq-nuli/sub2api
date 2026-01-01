@@ -33,6 +33,7 @@ export default {
       soon: 'Soon',
       claude: 'Claude',
       gemini: 'Gemini',
+      antigravity: 'Antigravity',
       more: 'More'
     },
     footer: {
@@ -329,7 +330,8 @@ export default {
     customKeyHint: 'Only letters, numbers, underscores and hyphens allowed. Minimum 16 characters.',
     customKeyTooShort: 'Custom key must be at least 16 characters',
     customKeyInvalidChars: 'Custom key can only contain letters, numbers, underscores, and hyphens',
-    customKeyRequired: 'Please enter a custom key'
+    customKeyRequired: 'Please enter a custom key',
+    ccSwitchNotInstalled: 'CC-Switch is not installed or the protocol handler is not registered. Please install CC-Switch first or manually copy the API key.'
   },
 
   // Usage
@@ -348,6 +350,12 @@ export default {
     allApiKeys: 'All API Keys',
     timeRange: 'Time Range',
     exportCsv: 'Export CSV',
+    exportExcel: 'Export Excel',
+    exportingProgress: 'Exporting data...',
+    exportedCount: 'Exported {current}/{total} records',
+    estimatedTime: 'Estimated time remaining: {time}',
+    cancelExport: 'Cancel Export',
+    exportCancelled: 'Export cancelled',
     exporting: 'Exporting...',
     preparingExport: 'Preparing export...',
     model: 'Model',
@@ -371,6 +379,8 @@ export default {
     noDataToExport: 'No data to export',
     exportSuccess: 'Usage data exported successfully',
     exportFailed: 'Failed to export usage data',
+    exportExcelSuccess: 'Usage data exported successfully (Excel format)',
+    exportExcelFailed: 'Failed to export usage data',
     billingType: 'Billing',
     balance: 'Balance',
     subscription: 'Subscription'
@@ -427,9 +437,7 @@ export default {
     administrator: 'Administrator',
     user: 'User',
     username: 'Username',
-    wechat: 'WeChat ID',
     enterUsername: 'Enter username',
-    enterWechat: 'Enter WeChat ID',
     editProfile: 'Edit Profile',
     updateProfile: 'Update Profile',
     updating: 'Updating...',
@@ -558,12 +566,10 @@ export default {
       email: 'Email',
       password: 'Password',
       username: 'Username',
-      wechat: 'WeChat ID',
       notes: 'Notes',
       enterEmail: 'Enter email',
       enterPassword: 'Enter password',
       enterUsername: 'Enter username (optional)',
-      enterWechat: 'Enter WeChat ID (optional)',
       enterNotes: 'Enter notes (admin only)',
       notesHint: 'This note is only visible to administrators',
       enterNewPassword: 'Enter new password (optional)',
@@ -575,7 +581,6 @@ export default {
       columns: {
         user: 'User',
         username: 'Username',
-        wechat: 'WeChat ID',
         notes: 'Notes',
         role: 'Role',
         subscriptions: 'Subscriptions',
@@ -646,7 +651,67 @@ export default {
       failedToDeposit: 'Failed to deposit',
       failedToWithdraw: 'Failed to withdraw',
       useDepositWithdrawButtons: 'Please use deposit/withdraw buttons to adjust balance',
-      insufficientBalance: 'Insufficient balance, balance cannot be negative after withdrawal'
+      insufficientBalance: 'Insufficient balance, balance cannot be negative after withdrawal',
+      // Settings Dropdowns
+      filterSettings: 'Filter Settings',
+      columnSettings: 'Column Settings',
+      filterValue: 'Enter value',
+      // User Attributes
+      attributes: {
+        title: 'User Attributes',
+        description: 'Configure custom user attribute fields',
+        configButton: 'Attributes',
+        addAttribute: 'Add Attribute',
+        editAttribute: 'Edit Attribute',
+        deleteAttribute: 'Delete Attribute',
+        deleteConfirm: "Are you sure you want to delete attribute '{name}'? All user values for this attribute will be deleted.",
+        noAttributes: 'No custom attributes',
+        noAttributesHint: 'Click the button above to add custom attributes',
+        key: 'Attribute Key',
+        keyHint: 'For programmatic reference, only letters, numbers and underscores',
+        name: 'Display Name',
+        nameHint: 'Name shown in forms',
+        type: 'Attribute Type',
+        fieldDescription: 'Description',
+        fieldDescriptionHint: 'Description text for the attribute',
+        placeholder: 'Placeholder',
+        placeholderHint: 'Placeholder text for input field',
+        required: 'Required',
+        enabled: 'Enabled',
+        options: 'Options',
+        optionsHint: 'For select/multi-select types',
+        addOption: 'Add Option',
+        optionValue: 'Option Value',
+        optionLabel: 'Display Text',
+        validation: 'Validation Rules',
+        minLength: 'Min Length',
+        maxLength: 'Max Length',
+        min: 'Min Value',
+        max: 'Max Value',
+        pattern: 'Regex Pattern',
+        patternMessage: 'Validation Error Message',
+        types: {
+          text: 'Text',
+          textarea: 'Textarea',
+          number: 'Number',
+          email: 'Email',
+          url: 'URL',
+          date: 'Date',
+          select: 'Select',
+          multi_select: 'Multi-Select'
+        },
+        created: 'Attribute created successfully',
+        updated: 'Attribute updated successfully',
+        deleted: 'Attribute deleted successfully',
+        reordered: 'Attribute order updated successfully',
+        failedToLoad: 'Failed to load attributes',
+        failedToCreate: 'Failed to create attribute',
+        failedToUpdate: 'Failed to update attribute',
+        failedToDelete: 'Failed to delete attribute',
+        failedToReorder: 'Failed to update order',
+        keyExists: 'Attribute key already exists',
+        dragToReorder: 'Drag to reorder'
+      }
     },
 
     // Groups
@@ -742,6 +807,7 @@ export default {
       weekly: 'Weekly',
       monthly: 'Monthly',
       noLimits: 'No limits configured',
+      unlimited: 'Unlimited',
       resetNow: 'Resetting soon',
       windowNotActive: 'Window not active',
       resetInMinutes: 'Resets in {minutes}m',
@@ -836,14 +902,16 @@ export default {
         anthropic: 'Anthropic',
         claude: 'Claude',
         openai: 'OpenAI',
-        gemini: 'Gemini'
+        gemini: 'Gemini',
+        antigravity: 'Antigravity'
       },
       types: {
         oauth: 'OAuth',
         chatgptOauth: 'ChatGPT OAuth',
         responsesApi: 'Responses API',
         googleOauth: 'Google OAuth',
-        codeAssist: 'Code Assist'
+        codeAssist: 'Code Assist',
+        antigravityOauth: 'Antigravity OAuth'
       },
       columns: {
         name: 'Name',
@@ -935,6 +1003,15 @@ export default {
       actualModel: 'Actual model',
       addMapping: 'Add Mapping',
       mappingExists: 'Mapping for {model} already exists',
+      searchModels: 'Search models...',
+      noMatchingModels: 'No matching models',
+      fillRelatedModels: 'Fill related models',
+      clearAllModels: 'Clear all models',
+      customModelName: 'Custom model name',
+      enterCustomModelName: 'Enter custom model name',
+      addModel: 'Add',
+      modelExists: 'Model already exists',
+      modelCount: '{count} models',
       customErrorCodes: 'Custom Error Codes',
       customErrorCodesHint: 'Only stop scheduling for selected error codes',
       customErrorCodesWarning:
@@ -953,6 +1030,10 @@ export default {
       priority: 'Priority',
       priorityHint: 'Higher priority accounts are used first',
       higherPriorityFirst: 'Higher value means higher priority',
+      mixedScheduling: 'Mixed Scheduling',
+      mixedSchedulingHint: 'Enable to participate in Anthropic/Gemini group scheduling',
+      mixedSchedulingTooltip:
+        'When enabled, this account can be scheduled by /v1/messages and /v1beta endpoints. Otherwise, it will only be scheduled by /antigravity. Note: Anthropic Claude and Antigravity Claude cannot be mixed in the same context. Please manage groups carefully when enabled.',
       creating: 'Creating...',
       updating: 'Updating...',
       accountCreated: 'Account created successfully',
@@ -1062,22 +1143,44 @@ export default {
 	          failedToGenerateUrl: 'Failed to generate Gemini auth URL',
 	          missingExchangeParams: 'Missing auth code, session ID, or state',
 	          failedToExchangeCode: 'Failed to exchange Gemini auth code',
+	          missingProjectId: 'GCP Project ID retrieval failed: Your Google account is not linked to an active GCP project. Please activate GCP and bind a credit card in Google Cloud Console, or manually enter the Project ID during authorization.',
 	          modelPassthrough: 'Gemini Model Passthrough',
 	          modelPassthroughDesc:
 	            'All model requests are forwarded directly to the Gemini API without model restrictions or mappings.',
 	          stateWarningTitle: 'Note',
 	          stateWarningDesc: 'Recommended: paste the full callback URL (includes code & state).',
 	          oauthTypeLabel: 'OAuth Type',
-	          needsProjectId: 'For GCP Developers',
-	          needsProjectIdDesc: 'Requires GCP project',
-	          noProjectIdNeeded: 'For Regular Users',
-	          noProjectIdNeededDesc: 'Requires admin-configured OAuth client',
+          needsProjectId: 'Built-in OAuth (Code Assist)',
+          needsProjectIdDesc: 'Requires GCP project and Project ID',
+          noProjectIdNeeded: 'Custom OAuth (AI Studio)',
+          noProjectIdNeededDesc: 'Requires admin-configured OAuth client',
 	          aiStudioNotConfiguredShort: 'Not configured',
 	          aiStudioNotConfiguredTip:
 	            'AI Studio OAuth is not configured: set GEMINI_OAUTH_CLIENT_ID / GEMINI_OAUTH_CLIENT_SECRET and add Redirect URI: http://localhost:1455/auth/callback (Consent screen scopes must include https://www.googleapis.com/auth/generative-language.retriever)',
 	          aiStudioNotConfigured:
 	            'AI Studio OAuth is not configured: set GEMINI_OAUTH_CLIENT_ID / GEMINI_OAUTH_CLIENT_SECRET and add Redirect URI: http://localhost:1455/auth/callback'
-	        }
+	        },
+        // Antigravity specific
+        antigravity: {
+          title: 'Antigravity Account Authorization',
+          followSteps: 'Follow these steps to authorize your Antigravity account:',
+          step1GenerateUrl: 'Generate the authorization URL',
+          generateAuthUrl: 'Generate Auth URL',
+          step2OpenUrl: 'Open the URL in your browser and complete authorization',
+          openUrlDesc: 'Open the authorization URL in a new tab, log in to your Google account and authorize.',
+          importantNotice:
+            '<strong>Important:</strong> The page may take a while to load after authorization. Please wait patiently. When the browser address bar shows <code>http://localhost...</code>, authorization is complete.',
+          step3EnterCode: 'Enter Authorization URL or Code',
+          authCodeDesc:
+            'After authorization, when the page URL becomes <code>http://localhost:xxx/auth/callback?code=...</code>:',
+          authCode: 'Authorization URL or Code',
+          authCodePlaceholder:
+            'Option 1: Copy the complete URL\n(http://localhost:xxx/auth/callback?code=...)\nOption 2: Copy only the code parameter value',
+          authCodeHint: 'You can copy the entire URL or just the code parameter value, the system will auto-detect',
+          failedToGenerateUrl: 'Failed to generate Antigravity auth URL',
+          missingExchangeParams: 'Missing code, session ID, or state',
+          failedToExchangeCode: 'Failed to exchange Antigravity auth code'
+        }
 	      },
       // Gemini specific (platform-wide)
       gemini: {
@@ -1085,13 +1188,107 @@ export default {
         modelPassthroughDesc:
           'All model requests are forwarded directly to the Gemini API without model restrictions or mappings.',
         baseUrlHint: 'Leave default for official Gemini API',
-        apiKeyHint: 'Your Gemini API Key (starts with AIza)'
+        apiKeyHint: 'Your Gemini API Key (starts with AIza)',
+        accountType: {
+          oauthTitle: 'OAuth (Gemini)',
+          oauthDesc: 'Authorize with your Google account and choose an OAuth type.',
+          apiKeyTitle: 'API Key (AI Studio)',
+          apiKeyDesc: 'Fastest setup. Use an AIza API key.',
+          apiKeyNote:
+            'Best for light testing. Free tier has strict rate limits and data may be used for training.',
+          apiKeyLink: 'Get API Key',
+          quotaLink: 'Quota guide'
+        },
+        oauthType: {
+          builtInTitle: 'Built-in OAuth (Gemini CLI / Code Assist)',
+          builtInDesc: 'Uses Google built-in client ID. No admin configuration required.',
+          builtInRequirement: 'Requires a GCP project and Project ID.',
+          gcpProjectLink: 'Create project',
+          customTitle: 'Custom OAuth (AI Studio OAuth)',
+          customDesc: 'Uses admin-configured OAuth client for org management.',
+          customRequirement: 'Admin must configure Client ID and add you as a test user.',
+          badges: {
+            recommended: 'Recommended',
+            highConcurrency: 'High concurrency',
+            noAdmin: 'No admin setup',
+            orgManaged: 'Org managed',
+            adminRequired: 'Admin required'
+          }
+        },
+        setupGuide: {
+          title: 'Gemini Setup Checklist',
+          checklistTitle: 'Checklist',
+          checklistItems: {
+            usIp: 'Use a US IP and ensure your account country is set to US.',
+            age: 'Account must be 18+.'
+          },
+          activationTitle: 'One-click Activation',
+          activationItems: {
+            geminiWeb: 'Activate Gemini Web to avoid User not initialized.',
+            gcpProject: 'Activate a GCP project and get the Project ID for Code Assist.'
+          },
+          links: {
+            countryCheck: 'Check country association',
+            geminiWebActivation: 'Activate Gemini Web',
+            gcpProject: 'Open GCP Console'
+          }
+        },
+        quotaPolicy: {
+          title: 'Gemini Quota & Limit Policy (Reference)',
+          note: 'Note: Gemini does not provide an official quota inquiry API. The "Daily Quota" shown here is an estimate simulated by the system based on account tiers for scheduling reference only. Please refer to official Google errors for actual limits.',
+          columns: {
+            channel: 'Auth Channel',
+            account: 'Account Status',
+            limits: 'Limit Policy',
+            docs: 'Official Docs'
+          },
+          docs: {
+            codeAssist: 'Code Assist Quotas',
+            aiStudio: 'AI Studio Pricing',
+            vertex: 'Vertex AI Quotas'
+          },
+          simulatedNote: 'Simulated quota, for reference only',
+          rows: {
+            cli: {
+              channel: 'Gemini CLI (Official Google Login / Code Assist)',
+              free: 'Free Google Account',
+              premium: 'Google One AI Premium',
+              limitsFree: 'RPD ~1000; RPM ~60 (soft)',
+              limitsPremium: 'RPD ~1500+; RPM ~60+ (priority queue)'
+            },
+            gcloud: {
+              channel: 'GCP Code Assist (gcloud auth)',
+              account: 'No Code Assist subscription',
+              limits: 'RPD ~1000; RPM ~60 (preview)'
+            },
+            aiStudio: {
+              channel: 'AI Studio API Key / OAuth',
+              free: 'No billing (free tier)',
+              paid: 'Billing enabled (pay-as-you-go)',
+              limitsFree: 'RPD 50; RPM 2 (Pro) / 15 (Flash)',
+              limitsPaid: 'RPD unlimited; RPM 1000+ (per model quota)'
+            },
+            customOAuth: {
+              channel: 'Custom OAuth Client (GCP)',
+              free: 'Project not billed',
+              paid: 'Project billed',
+              limitsFree: 'RPD 50; RPM 2 (project quota)',
+              limitsPaid: 'RPD unlimited; RPM 1000+ (project quota)'
+            }
+          }
+        },
+        rateLimit: {
+          ok: 'Not rate limited',
+          limited: 'Rate limited {time}',
+          now: 'now'
+        }
       },
       // Re-Auth Modal
       reAuthorizeAccount: 'Re-Authorize Account',
       claudeCodeAccount: 'Claude Code Account',
       openaiAccount: 'OpenAI Account',
       geminiAccount: 'Gemini Account',
+      antigravityAccount: 'Antigravity Account',
       inputMethod: 'Input Method',
       reAuthorizedSuccess: 'Account re-authorized successfully',
       // Test Modal
@@ -1149,8 +1346,27 @@ export default {
         noData: 'No usage data available for this account'
       },
       usageWindow: {
-        statsTitle: '5-Hour Window Usage Statistics'
-      }
+        statsTitle: '5-Hour Window Usage Statistics',
+        statsTitleDaily: 'Daily Usage Statistics',
+        geminiProDaily: 'Pro',
+        geminiFlashDaily: 'Flash',
+        gemini3Pro: 'G3P',
+        gemini3Flash: 'G3F',
+        gemini3Image: 'G3I',
+        claude45: 'C4.5'
+      },
+      tier: {
+        free: 'Free',
+        pro: 'Pro',
+        ultra: 'Ultra',
+        aiPremium: 'AI Premium',
+        standard: 'Standard',
+        basic: 'Basic',
+        personal: 'Personal',
+        unlimited: 'Unlimited'
+      },
+      ineligibleWarning:
+        'This account is not eligible for Antigravity, but API forwarding still works. Use at your own risk.'
     },
 
     // Proxies
@@ -1294,6 +1510,7 @@ export default {
       account: 'Account',
       group: 'Group',
       requestId: 'Request ID',
+      requestIdCopied: 'Request ID copied',
       allModels: 'All Models',
       allAccounts: 'All Accounts',
       allGroups: 'All Groups',
@@ -1303,6 +1520,10 @@ export default {
       outputCost: 'Output Cost',
       cacheCreationCost: 'Cache Creation Cost',
       cacheReadCost: 'Cache Read Cost',
+      inputTokens: 'Input Tokens',
+      outputTokens: 'Output Tokens',
+      cacheCreationTokens: 'Cache Creation Tokens',
+      cacheReadTokens: 'Cache Read Tokens',
       failedToLoad: 'Failed to load usage records'
     },
 
@@ -1562,7 +1783,8 @@ export default {
     expiresToday: 'Expires today',
     expiresTomorrow: 'Expires tomorrow',
     viewAll: 'View all subscriptions',
-    noSubscriptions: 'No active subscriptions'
+    noSubscriptions: 'No active subscriptions',
+    unlimited: 'Unlimited'
   },
 
   // Version Badge
@@ -1605,6 +1827,7 @@ export default {
     expires: 'Expires',
     noExpiration: 'No expiration',
     unlimited: 'Unlimited',
+    unlimitedDesc: 'No usage limits on this subscription',
     daily: 'Daily',
     weekly: 'Weekly',
     monthly: 'Monthly',
@@ -1615,7 +1838,7 @@ export default {
     usageOf: '{used} of {limit}'
   },
 
-  // Recharge Page
+// Recharge Page
   recharge: {
     title: 'Recharge',
     description: 'Recharge balance to use API services',
@@ -1675,5 +1898,150 @@ export default {
     fetchFailed: 'Failed to fetch order',
     backToRecharge: 'Back to Recharge',
     backToDashboard: 'Back to Dashboard'
+  },
+
+  // Onboarding Tour
+  onboarding: {
+    restartTour: 'Restart Onboarding Tour',
+    dontShowAgain: "Don't show again",
+    dontShowAgainTitle: 'Permanently close onboarding guide',
+    confirmDontShow: "Are you sure you don't want to see the onboarding guide again?\n\nYou can restart it anytime from the user menu in the top right corner.",
+    confirmExit: 'Are you sure you want to exit the onboarding guide? You can restart it anytime from the top right menu.',
+    interactiveHint: 'Press Enter or Click to continue',
+    navigation: {
+      flipPage: 'Flip Page',
+      exit: 'Exit'
+    },
+    // Admin tour steps
+    admin: {
+      welcome: {
+        title: '👋 Welcome to Sub2API',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Sub2API is a powerful AI service gateway platform that helps you easily manage and distribute AI services.</p><p style="margin-bottom: 12px;"><b>🎯 Core Features:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>📦 <b>Group Management</b> - Create service tiers (VIP, Free Trial, etc.)</li><li>🔗 <b>Account Pool</b> - Connect multiple upstream AI service accounts</li><li>🔑 <b>Key Distribution</b> - Generate independent API Keys for users</li><li>💰 <b>Billing Control</b> - Flexible rate and quota management</li></ul><p style="color: #10b981; font-weight: 600;">Let\'s complete the initial setup in 3 minutes →</p></div>',
+        nextBtn: 'Start Setup 🚀',
+        prevBtn: 'Skip'
+      },
+      groupManage: {
+        title: '📦 Step 1: Group Management',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>What is a Group?</b></p><p style="margin-bottom: 12px;">Groups are the core concept of Sub2API, like a "service package":</p><ul style="margin-left: 20px; margin-bottom: 12px; font-size: 13px;"><li>🎯 Each group can contain multiple upstream accounts</li><li>💰 Each group has independent billing multiplier</li><li>👥 Can be set as public or exclusive</li></ul><p style="margin-top: 12px; padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Example:</b> You can create "VIP Premium" (high rate) and "Free Trial" (low rate) groups</p><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 Click "Group Management" on the left sidebar</p></div>'
+      },
+      createGroup: {
+        title: '➕ Create New Group',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Let\'s create your first group.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>📝 Tip:</b> Recommend creating a test group first to familiarize yourself with the process</p><p style="color: #10b981; font-weight: 600;">👉 Click the "Create Group" button</p></div>'
+      },
+      groupName: {
+        title: '✏️ 1. Group Name',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Give your group an easy-to-identify name.</p><div style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>💡 Naming Suggestions:</b><ul style="margin: 8px 0 0 16px;"><li>"Test Group" - For testing</li><li>"VIP Premium" - High-quality service</li><li>"Free Trial" - Trial version</li></ul></div><p style="font-size: 13px; color: #6b7280;">Click "Next" when done</p></div>',
+        nextBtn: 'Next'
+      },
+      groupPlatform: {
+        title: '🤖 2. Select Platform',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Choose the AI platform this group supports.</p><div style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>📌 Platform Guide:</b><ul style="margin: 8px 0 0 16px;"><li><b>Anthropic</b> - Claude models</li><li><b>OpenAI</b> - GPT models</li><li><b>Google</b> - Gemini models</li></ul></div><p style="font-size: 13px; color: #6b7280;">One group can only have one platform</p></div>',
+        nextBtn: 'Next'
+      },
+      groupMultiplier: {
+        title: '💰 3. Rate Multiplier',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Set the billing multiplier to control user charges.</p><div style="padding: 8px 12px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚙️ Billing Rules:</b><ul style="margin: 8px 0 0 16px;"><li><b>1.0</b> - Original price (cost price)</li><li><b>1.5</b> - User consumes $1, charged $1.5</li><li><b>2.0</b> - User consumes $1, charged $2</li><li><b>0.8</b> - Subsidy mode (loss-making)</li></ul></div><p style="font-size: 13px; color: #6b7280;">Recommend setting test group to 1.0</p></div>',
+        nextBtn: 'Next'
+      },
+      groupExclusive: {
+        title: '🔒 4. Exclusive Group (Optional)',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Control group visibility and access permissions.</p><div style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>🔐 Permission Guide:</b><ul style="margin: 8px 0 0 16px;"><li><b>Off</b> - Public group, visible to all users</li><li><b>On</b> - Exclusive group, only for specified users</li></ul></div><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Use Cases:</b> VIP exclusive, internal testing, special customers</p></div>',
+        nextBtn: 'Next'
+      },
+      groupSubmit: {
+        title: '✅ Save Group',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Confirm the information and click create to save the group.</p><p style="padding: 8px 12px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚠️ Note:</b> Platform type cannot be changed after creation, but other settings can be edited anytime</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>📌 Next Step:</b> After creation, we\'ll add upstream accounts to this group</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click "Create" button</p></div>'
+      },
+      accountManage: {
+        title: '🔗 Step 2: Add Account',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>Great! Group created successfully 🎉</b></p><p style="margin-bottom: 12px;">Now add upstream AI service accounts to enable actual service delivery.</p><div style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>🔑 Account Purpose:</b><ul style="margin: 8px 0 0 16px;"><li>Connect to upstream AI services (Claude, GPT, etc.)</li><li>One group can contain multiple accounts (load balancing)</li><li>Supports OAuth and Session Key methods</li></ul></div><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 Click "Account Management" on the left sidebar</p></div>'
+      },
+      createAccount: {
+        title: '➕ Add New Account',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Click the button to start adding your first upstream account.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Tip:</b> Recommend using OAuth method - more secure and no manual key extraction needed</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click "Add Account" button</p></div>'
+      },
+      accountName: {
+        title: '✏️ 1. Account Name',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Set an easy-to-identify name for the account.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Naming Suggestions:</b> "Claude Main", "GPT Backup 1", "Test Account", etc.</p></div>',
+        nextBtn: 'Next'
+      },
+      accountPlatform: {
+        title: '🤖 2. Select Platform',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Choose the service provider platform for this account.</p><p style="padding: 8px 12px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 13px;"><b>⚠️ Important:</b> Platform must match the group you just created</p></div>',
+        nextBtn: 'Next'
+      },
+      accountType: {
+        title: '🔐 3. Authorization Method',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Choose the account authorization method.</p><div style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>✅ Recommended: OAuth Method</b><ul style="margin: 8px 0 0 16px;"><li>No manual key extraction needed</li><li>More secure with auto-refresh support</li><li>Works with Claude Code, ChatGPT OAuth</li></ul></div><div style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>📌 Session Key Method</b><ul style="margin: 8px 0 0 16px;"><li>Requires manual extraction from browser</li><li>May need periodic updates</li><li>For platforms without OAuth support</li></ul></div></div>',
+        nextBtn: 'Next'
+      },
+      accountPriority: {
+        title: '⚖️ 4. Priority (Optional)',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Set the account call priority.</p><div style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>📊 Priority Rules:</b><ul style="margin: 8px 0 0 16px;"><li>Higher number = higher priority</li><li>System uses high-priority accounts first</li><li>Same priority = random selection</li></ul></div><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Use Case:</b> Set main account to high priority, backup accounts to low priority</p></div>',
+        nextBtn: 'Next'
+      },
+      accountGroups: {
+        title: '🎯 5. Assign Groups',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>Key Step!</b> Assign the account to the group you just created.</p><div style="padding: 8px 12px; background: #fee2e2; border-left: 3px solid #ef4444; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚠️ Important Reminder:</b><ul style="margin: 8px 0 0 16px;"><li>Must select at least one group</li><li>Unassigned accounts cannot be used</li><li>One account can be assigned to multiple groups</li></ul></div><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Tip:</b> Select the test group you just created</p></div>',
+        nextBtn: 'Next'
+      },
+      accountSubmit: {
+        title: '✅ Save Account',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Confirm the information and click save.</p><div style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>📌 OAuth Flow:</b><ul style="margin: 8px 0 0 16px;"><li>Will redirect to service provider page after clicking save</li><li>Complete login and authorization on provider page</li><li>Auto-return after successful authorization</li></ul></div><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>📌 Next Step:</b> After adding account, we\'ll create an API key</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click "Save" button</p></div>'
+      },
+      keyManage: {
+        title: '🔑 Step 3: Generate Key',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;"><b>Congratulations! Account setup complete 🎉</b></p><p style="margin-bottom: 12px;">Final step: generate an API Key to test if the service works properly.</p><div style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>🔑 API Key Purpose:</b><ul style="margin: 8px 0 0 16px;"><li>Credential for calling AI services</li><li>Each key is bound to one group</li><li>Can set quota and expiration</li><li>Supports independent usage statistics</li></ul></div><p style="margin-top: 16px; color: #10b981; font-weight: 600;">👉 Click "API Keys" on the left sidebar</p></div>'
+      },
+      createKey: {
+        title: '➕ Create Key',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Click the button to create your first API Key.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Tip:</b> Copy and save immediately after creation - key is only shown once</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click "Create Key" button</p></div>'
+      },
+      keyName: {
+        title: '✏️ 1. Key Name',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Set an easy-to-manage name for the key.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Naming Suggestions:</b> "Test Key", "Production", "Mobile", etc.</p></div>',
+        nextBtn: 'Next'
+      },
+      keyGroup: {
+        title: '🎯 2. Select Group',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Select the group you just configured.</p><div style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>📌 Group Determines:</b><ul style="margin: 8px 0 0 16px;"><li>Which accounts this key can use</li><li>What billing multiplier applies</li><li>Whether it\'s an exclusive key</li></ul></div><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Tip:</b> Select the test group you just created</p></div>',
+        nextBtn: 'Next'
+      },
+      keySubmit: {
+        title: '🎉 Generate and Copy',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">System will generate a complete API Key after clicking create.</p><div style="padding: 8px 12px; background: #fee2e2; border-left: 3px solid #ef4444; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚠️ Important Reminder:</b><ul style="margin: 8px 0 0 16px;"><li>Key is only shown once, copy immediately</li><li>Need to regenerate if lost</li><li>Keep it safe, don\'t share with others</li></ul></div><div style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>🚀 Next Steps:</b><ul style="margin: 8px 0 0 16px;"><li>Copy the generated sk-xxx key</li><li>Use in any OpenAI-compatible client</li><li>Start experiencing AI services!</li></ul></div><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click "Create" button</p></div>'
+      }
+    },
+    // User tour steps
+    user: {
+      welcome: {
+        title: '👋 Welcome to Sub2API',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the Sub2API AI service platform.</p><p style="margin-bottom: 12px;"><b>🎯 Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 Create API Key</li><li>📋 Copy key to your application</li><li>🚀 Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
+        nextBtn: 'Start 🚀',
+        prevBtn: 'Skip'
+      },
+      keyManage: {
+        title: '🔑 API Key Management',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Manage all your API access keys here.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>📌 What is an API Key?</b><br/>An API key is your credential for accessing AI services, like a key that allows your application to call AI capabilities.</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click to enter key page</p></div>'
+      },
+      createKey: {
+        title: '➕ Create New Key',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Click the button to create your first API key.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Tip:</b> Key is only shown once after creation, make sure to copy and save</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click "Create Key"</p></div>'
+      },
+      keyName: {
+        title: '✏️ Key Name',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Give your key an easy-to-identify name.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Examples:</b> "My First Key", "For Testing", etc.</p></div>',
+        nextBtn: 'Next'
+      },
+      keyGroup: {
+        title: '🎯 Select Group',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Select the service group assigned by the administrator.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>📌 Group Info:</b><br/>Different groups may have different service quality and billing rates, choose according to your needs.</p></div>',
+        nextBtn: 'Next'
+      },
+      keySubmit: {
+        title: '🎉 Complete Creation',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Click to confirm and create your API key.</p><div style="padding: 8px 12px; background: #fee2e2; border-left: 3px solid #ef4444; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚠️ Important:</b><ul style="margin: 8px 0 0 16px;"><li>Copy the key (sk-xxx) immediately after creation</li><li>Key is only shown once, need to regenerate if lost</li></ul></div><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>🚀 How to Use:</b><br/>Configure the key in any OpenAI-compatible client (like ChatBox, OpenCat, etc.) and start using!</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click "Create" button</p></div>'
+      }
+    }
   }
 }
