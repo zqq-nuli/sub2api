@@ -68,5 +68,28 @@ func RegisterUserRoutes(
 			subscriptions.GET("/progress", h.Subscription.GetProgress)
 			subscriptions.GET("/summary", h.Subscription.GetSummary)
 		}
+
+		// 充值套餐
+		recharge := authenticated.Group("/recharge")
+		{
+			recharge.GET("/products", h.Order.GetRechargeProducts)
+		}
+
+		// 订单管理
+		orders := authenticated.Group("/orders")
+		{
+			orders.POST("", h.Order.CreateOrder)
+			orders.GET("", h.Order.GetUserOrders)
+			orders.GET("/:order_no", h.Order.GetOrderByNo)
+		}
+	}
+
+	// 支付回调（无需认证）
+	payment := v1.Group("/payment")
+	{
+		payment.POST("/notify/epay", h.Payment.HandleEpayNotify)
+		payment.GET("/notify/epay", h.Payment.HandleEpayNotify) // 支持GET和POST
+		payment.GET("/return/epay", h.Payment.HandleEpayReturn)
+		payment.GET("/channels", h.Payment.GetPaymentChannels) // 获取可用支付渠道
 	}
 }

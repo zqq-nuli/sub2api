@@ -70,6 +70,13 @@ func ProvideOIDCSSOService(
 	return svc
 }
 
+// ProvideOrderCleanupService creates and starts OrderCleanupService
+func ProvideOrderCleanupService(orderRepo OrderRepository) *OrderCleanupService {
+	svc := NewOrderCleanupService(orderRepo)
+	svc.Start()
+	return svc
+}
+
 // ProviderSet is the Wire provider set for all services
 var ProviderSet = wire.NewSet(
 	// Core services
@@ -109,4 +116,10 @@ var ProviderSet = wire.NewSet(
 	ProvideTimingWheelService,
 	ProvideDeferredService,
 	ProvideOIDCSSOService,
+
+	// Payment and order services
+	NewPaymentService,
+	NewOrderService,
+	NewRechargeProductService,
+	ProvideOrderCleanupService,
 )

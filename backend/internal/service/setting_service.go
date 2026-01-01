@@ -7,11 +7,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/infrastructure/errors"
 )
+
+// CryptoService 加密服务接口
+type CryptoService interface {
+	Encrypt(plaintext string) (string, error)
+	Decrypt(ciphertext string) (string, error)
+}
 
 var (
 	ErrRegistrationDisabled     = infraerrors.Forbidden("REGISTRATION_DISABLED", "registration is currently disabled")
@@ -34,15 +41,17 @@ type SettingRepository interface {
 
 // SettingService 系统设置服务
 type SettingService struct {
-	settingRepo SettingRepository
-	cfg         *config.Config
+	settingRepo   SettingRepository
+	cfg           *config.Config
+	cryptoService CryptoService
 }
 
 // NewSettingService 创建系统设置服务实例
-func NewSettingService(settingRepo SettingRepository, cfg *config.Config) *SettingService {
+func NewSettingService(settingRepo SettingRepository, cfg *config.Config, cryptoService CryptoService) *SettingService {
 	return &SettingService{
-		settingRepo: settingRepo,
-		cfg:         cfg,
+		settingRepo:   settingRepo,
+		cfg:           cfg,
+		cryptoService: cryptoService,
 	}
 }
 
@@ -103,22 +112,22 @@ func (s *SettingService) UpdateSettings(ctx context.Context, settings *SystemSet
 	updates[SettingKeyRegistrationEnabled] = strconv.FormatBool(settings.RegistrationEnabled)
 	updates[SettingKeyEmailVerifyEnabled] = strconv.FormatBool(settings.EmailVerifyEnabled)
 
-	// 邮件服务设置（只有非空才更新密码）
+	// 邮件服务设置（只有非空才更新密码，并加密存储）
 	updates[SettingKeySmtpHost] = settings.SmtpHost
 	updates[SettingKeySmtpPort] = strconv.Itoa(settings.SmtpPort)
 	updates[SettingKeySmtpUsername] = settings.SmtpUsername
 	if settings.SmtpPassword != "" {
-		updates[SettingKeySmtpPassword] = settings.SmtpPassword
+		updates[SettingKeySmtpPassword] = s.encryptSensitive(settings.SmtpPassword)
 	}
 	updates[SettingKeySmtpFrom] = settings.SmtpFrom
 	updates[SettingKeySmtpFromName] = settings.SmtpFromName
 	updates[SettingKeySmtpUseTLS] = strconv.FormatBool(settings.SmtpUseTLS)
 
-	// Cloudflare Turnstile 设置（只有非空才更新密钥）
+	// Cloudflare Turnstile 设置（只有非空才更新密钥，并加密存储）
 	updates[SettingKeyTurnstileEnabled] = strconv.FormatBool(settings.TurnstileEnabled)
 	updates[SettingKeyTurnstileSiteKey] = settings.TurnstileSiteKey
 	if settings.TurnstileSecretKey != "" {
-		updates[SettingKeyTurnstileSecretKey] = settings.TurnstileSecretKey
+		updates[SettingKeyTurnstileSecretKey] = s.encryptSensitive(settings.TurnstileSecretKey)
 	}
 
 	// OEM设置
@@ -139,7 +148,7 @@ func (s *SettingService) UpdateSettings(ctx context.Context, settings *SystemSet
 	updates[SettingKeySSOIssuerURL] = settings.SSOIssuerURL
 	updates[SettingKeySSOClientID] = settings.SSOClientID
 	if settings.SSOClientSecret != "" {
-		updates[SettingKeySSOClientSecret] = settings.SSOClientSecret
+		updates[SettingKeySSOClientSecret] = s.encryptSensitive(settings.SSOClientSecret)
 	}
 	updates[SettingKeySSORedirectURI] = settings.SSORedirectURI
 	// 将数组转为JSON字符串
@@ -150,6 +159,22 @@ func (s *SettingService) UpdateSettings(ctx context.Context, settings *SystemSet
 		updates[SettingKeySSOAllowedDomains] = "[]"
 	}
 	updates[SettingKeySSOAutoCreateUser] = strconv.FormatBool(settings.SSOAutoCreateUser)
+
+	// 易支付设置（商户密钥加密存储）
+	updates[SettingKeyEpayEnabled] = strconv.FormatBool(settings.EpayEnabled)
+	updates[SettingKeyEpayApiURL] = settings.EpayApiURL
+	updates[SettingKeyEpayMerchantID] = settings.EpayMerchantID
+	if settings.EpayMerchantKey != "" {
+		updates[SettingKeyEpayMerchantKey] = s.encryptSensitive(settings.EpayMerchantKey)
+	}
+	updates[SettingKeyEpayNotifyURL] = settings.EpayNotifyURL
+	updates[SettingKeyEpayReturnURL] = settings.EpayReturnURL
+
+	// 支付渠道配置
+	if len(settings.PaymentChannels) > 0 {
+		channelsJSON, _ := json.Marshal(settings.PaymentChannels)
+		updates[SettingKeyPaymentChannels] = string(channelsJSON)
+	}
 
 	return s.settingRepo.SetMultiple(ctx, updates)
 }
@@ -293,10 +318,30 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		}
 	}
 
-	// 敏感信息直接返回，方便测试连接时使用
-	result.SmtpPassword = settings[SettingKeySmtpPassword]
-	result.TurnstileSecretKey = settings[SettingKeyTurnstileSecretKey]
-	result.SSOClientSecret = settings[SettingKeySSOClientSecret]
+	// 敏感信息解密后返回
+	result.SmtpPassword = s.decryptSensitive(settings[SettingKeySmtpPassword])
+	result.TurnstileSecretKey = s.decryptSensitive(settings[SettingKeyTurnstileSecretKey])
+	result.SSOClientSecret = s.decryptSensitive(settings[SettingKeySSOClientSecret])
+
+	// 易支付设置
+	result.EpayEnabled = settings[SettingKeyEpayEnabled] == "true"
+	result.EpayApiURL = settings[SettingKeyEpayApiURL]
+	result.EpayMerchantID = settings[SettingKeyEpayMerchantID]
+	result.EpayMerchantKey = s.decryptSensitive(settings[SettingKeyEpayMerchantKey])
+	result.EpayNotifyURL = settings[SettingKeyEpayNotifyURL]
+	result.EpayReturnURL = settings[SettingKeyEpayReturnURL]
+
+	// 解析支付渠道配置
+	if channelsJSON := settings[SettingKeyPaymentChannels]; channelsJSON != "" {
+		var channels []PaymentChannel
+		if err := json.Unmarshal([]byte(channelsJSON), &channels); err == nil {
+			result.PaymentChannels = channels
+		}
+	}
+	// 如果没有配置支付渠道，使用默认值
+	if len(result.PaymentChannels) == 0 {
+		result.PaymentChannels = GetDefaultPaymentChannels()
+	}
 
 	return result
 }
@@ -307,6 +352,32 @@ func (s *SettingService) getStringOrDefault(settings map[string]string, key, def
 		return value
 	}
 	return defaultValue
+}
+
+// encryptSensitive 加密敏感字段
+func (s *SettingService) encryptSensitive(value string) string {
+	if value == "" {
+		return ""
+	}
+	encrypted, err := s.cryptoService.Encrypt(value)
+	if err != nil {
+		log.Printf("[SettingService] Failed to encrypt sensitive value: %v", err)
+		return value // 加密失败则返回原值
+	}
+	return encrypted
+}
+
+// decryptSensitive 解密敏感字段
+func (s *SettingService) decryptSensitive(value string) string {
+	if value == "" {
+		return ""
+	}
+	decrypted, err := s.cryptoService.Decrypt(value)
+	if err != nil {
+		log.Printf("[SettingService] Failed to decrypt sensitive value: %v", err)
+		return value // 解密失败则返回原值（可能是未加密的旧数据）
+	}
+	return decrypted
 }
 
 // IsTurnstileEnabled 检查是否启用 Turnstile 验证
@@ -433,4 +504,49 @@ func (s *SettingService) ValidateLoginMethod(ctx context.Context, method string)
 // SetSetting 设置单个配置项
 func (s *SettingService) SetSetting(ctx context.Context, key, value string) error {
 	return s.settingRepo.Set(ctx, key, value)
+}
+
+// GetPaymentChannels 获取所有启用的支付渠道
+func (s *SettingService) GetPaymentChannels(ctx context.Context) ([]PaymentChannel, error) {
+	channelsJSON, err := s.settingRepo.GetValue(ctx, SettingKeyPaymentChannels)
+	if err != nil && !errors.Is(err, ErrSettingNotFound) {
+		return nil, err
+	}
+
+	var channels []PaymentChannel
+	if channelsJSON != "" {
+		if err := json.Unmarshal([]byte(channelsJSON), &channels); err != nil {
+			return GetDefaultPaymentChannels(), nil
+		}
+	}
+
+	if len(channels) == 0 {
+		channels = GetDefaultPaymentChannels()
+	}
+
+	// 过滤出启用的渠道并排序
+	enabledChannels := make([]PaymentChannel, 0)
+	for _, ch := range channels {
+		if ch.Enabled {
+			enabledChannels = append(enabledChannels, ch)
+		}
+	}
+
+	return enabledChannels, nil
+}
+
+// GetEpayTypeByChannel 根据支付渠道获取 epay_type 参数
+func (s *SettingService) GetEpayTypeByChannel(ctx context.Context, channelKey string) (string, error) {
+	channels, err := s.GetPaymentChannels(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	for _, ch := range channels {
+		if ch.Key == channelKey && ch.Enabled {
+			return ch.EpayType, nil
+		}
+	}
+
+	return "", ErrInvalidPaymentMethod
 }

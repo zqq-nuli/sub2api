@@ -12,6 +12,7 @@ import (
 var ProviderSet = wire.NewSet(
 	ProvideDB,
 	ProvideRedis,
+	ProvideCryptoService,
 )
 
 // ProvideDB 提供数据库连接
@@ -22,4 +23,10 @@ func ProvideDB(cfg *config.Config) (*gorm.DB, error) {
 // ProvideRedis 提供 Redis 客户端
 func ProvideRedis(cfg *config.Config) *redis.Client {
 	return InitRedis(cfg)
+}
+
+// ProvideCryptoService 提供加密服务
+// 使用 JWT secret 派生加密密钥
+func ProvideCryptoService(cfg *config.Config) *CryptoService {
+	return NewCryptoService(cfg.JWT.Secret)
 }

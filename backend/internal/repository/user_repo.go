@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -140,6 +141,16 @@ func (r *userRepository) ListWithFilters(ctx context.Context, params pagination.
 
 func (r *userRepository) UpdateBalance(ctx context.Context, id int64, amount float64) error {
 	return r.db.WithContext(ctx).Model(&userModel{}).Where("id = ?", id).
+		Update("balance", gorm.Expr("balance + ?", amount)).Error
+}
+
+// UpdateBalanceWithTx 使用事务更新用户余额
+func (r *userRepository) UpdateBalanceWithTx(tx interface{}, id int64, amount float64) error {
+	gormTx, ok := tx.(*gorm.DB)
+	if !ok {
+		return fmt.Errorf("invalid transaction type")
+	}
+	return gormTx.Model(&userModel{}).Where("id = ?", id).
 		Update("balance", gorm.Expr("balance + ?", amount)).Error
 }
 

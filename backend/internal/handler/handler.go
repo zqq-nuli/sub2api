@@ -6,19 +6,21 @@ import (
 
 // AdminHandlers contains all admin-related HTTP handlers
 type AdminHandlers struct {
-	Dashboard    *admin.DashboardHandler
-	User         *admin.UserHandler
-	Group        *admin.GroupHandler
-	Account      *admin.AccountHandler
-	OAuth        *admin.OAuthHandler
-	OpenAIOAuth  *admin.OpenAIOAuthHandler
-	GeminiOAuth  *admin.GeminiOAuthHandler
-	Proxy        *admin.ProxyHandler
-	Redeem       *admin.RedeemHandler
-	Setting      *admin.SettingHandler
-	System       *admin.SystemHandler
-	Subscription *admin.SubscriptionHandler
-	Usage        *admin.UsageHandler
+	Dashboard       *admin.DashboardHandler
+	User            *admin.UserHandler
+	Group           *admin.GroupHandler
+	Account         *admin.AccountHandler
+	OAuth           *admin.OAuthHandler
+	OpenAIOAuth     *admin.OpenAIOAuthHandler
+	GeminiOAuth     *admin.GeminiOAuthHandler
+	Proxy           *admin.ProxyHandler
+	Redeem          *admin.RedeemHandler
+	Setting         *admin.SettingHandler
+	System          *admin.SystemHandler
+	Subscription    *admin.SubscriptionHandler
+	Usage           *admin.UsageHandler
+	Order           *admin.OrderHandler
+	RechargeProduct *admin.RechargeProductHandler
 }
 
 // Handlers contains all HTTP handlers
@@ -34,6 +36,8 @@ type Handlers struct {
 	OpenAIGateway *OpenAIGatewayHandler
 	Setting       *SettingHandler
 	SSO           *SSOHandler
+	Order         *OrderHandler
+	Payment       *PaymentHandler
 }
 
 // BuildInfo contains build-time information

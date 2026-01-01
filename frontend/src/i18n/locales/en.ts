@@ -149,6 +149,7 @@ export default {
     apiKeys: 'API Keys',
     usage: 'Usage',
     redeem: 'Redeem',
+    recharge: 'Recharge',
     profile: 'Profile',
     users: 'Users',
     groups: 'Groups',
@@ -156,6 +157,8 @@ export default {
     accounts: 'Accounts',
     proxies: 'Proxies',
     redeemCodes: 'Redeem Codes',
+    orders: 'Orders',
+    rechargeProducts: 'Recharge Products',
     settings: 'Settings',
     myAccount: 'My Account',
     lightMode: 'Light Mode',
@@ -1421,7 +1424,128 @@ export default {
       failedToLoad: 'Failed to load settings',
       failedToSave: 'Failed to save settings',
       failedToTestSmtp: 'SMTP connection test failed',
-      failedToSendTestEmail: 'Failed to send test email'
+      failedToSendTestEmail: 'Failed to send test email',
+      // Epay Settings
+      epay: {
+        title: 'Epay Settings',
+        description: 'Configure Epay payment gateway',
+        enableEpay: 'Enable Epay',
+        enableEpayHint: 'Enable Epay payment recharge',
+        apiUrl: 'API URL',
+        apiUrlHint: 'Epay gateway URL, e.g., https://pay.example.com',
+        merchantId: 'Merchant ID',
+        merchantIdHint: 'Epay merchant ID',
+        merchantKey: 'Merchant Key',
+        merchantKeyHint: 'Epay merchant key (keep this secret)',
+        notifyUrl: 'Notify URL',
+        notifyUrlHint: 'Asynchronous callback URL after successful payment',
+        returnUrl: 'Return URL',
+        returnUrlHint: 'Redirect URL after payment completion',
+        paymentChannels: 'Payment Channels',
+        paymentChannelsHint: 'Configure display names and gateway types for each payment channel',
+        channelEnabled: 'Enabled',
+        channelName: 'Channel ID',
+        channelDisplayName: 'Display Name',
+        channelEpayType: 'Gateway Type',
+        epayTypeNote: 'Note: Some platforms (e.g., linux.do credit) require "epay" as gateway type, while standard Epay gateways use "alipay", "wxpay", etc.',
+        addChannel: 'Add Channel',
+        channelKey: 'Channel ID',
+        channelKeyPlaceholder: 'e.g., paypal',
+        channelKeyHint: 'Unique identifier, use lowercase letters and numbers only',
+        channelDisplayNamePlaceholder: 'e.g., PayPal',
+        epayTypeHint: 'Payment type parameter for Epay gateway',
+        channelIcon: 'Icon',
+        channelIconHint: 'Icon name for frontend display',
+        channelKeyExists: 'Channel ID already exists',
+        channelAdded: 'Channel added successfully',
+        channelDeleted: 'Channel deleted successfully',
+        confirmDeleteChannel: 'Are you sure you want to delete the channel "{name}"?',
+        noChannels: 'No payment channels'
+      }
+    },
+
+    // Orders Management
+    orders: {
+      title: 'Order Management',
+      description: 'Manage recharge orders',
+      searchOrderNo: 'Search order number...',
+      allStatus: 'All Status',
+      allPaymentMethods: 'All Payment Methods',
+      // Statistics
+      totalOrders: 'Total Orders',
+      pendingOrders: 'Pending',
+      paidOrders: 'Paid',
+      totalAmount: 'Total Revenue',
+      // Columns
+      orderNo: 'Order No.',
+      user: 'User',
+      product: 'Product',
+      amount: 'Amount',
+      actualAmount: 'Actual Amount',
+      paymentMethod: 'Payment Method',
+      statusColumn: 'Status',
+      createdAt: 'Created At',
+      paidAt: 'Paid At',
+      actions: 'Actions',
+      // Status values (nested under status for t('admin.orders.status.pending') etc.)
+      status: {
+        pending: 'Pending',
+        paid: 'Paid',
+        failed: 'Failed',
+        expired: 'Expired'
+      },
+      // Payment methods
+      alipay: 'Alipay',
+      wechat: 'WeChat Pay',
+      usdt: 'USDT',
+      // Detail modal
+      view: 'View',
+      orderDetail: 'Order Details',
+      paidAmount: 'Paid Amount',
+      balance: 'Balance Added',
+      tradeNo: 'Trade No.',
+      notes: 'Notes',
+      // Pagination
+      showing: 'Showing {from} - {to} of {total}',
+      // Messages
+      noOrders: 'No orders yet',
+      noOrdersDescription: 'No recharge orders found',
+      fetchFailed: 'Failed to load orders',
+      failedToLoad: 'Failed to load orders',
+      exportCsv: 'Export CSV'
+    },
+
+    // Recharge Products Management
+    rechargeProducts: {
+      title: 'Recharge Products',
+      description: 'Manage recharge product configurations',
+      create: 'Create Product',
+      edit: 'Edit Product',
+      // Table columns
+      name: 'Name',
+      amount: 'Amount (CNY)',
+      balance: 'Base Balance (USD)',
+      bonus: 'Bonus Balance (USD)',
+      sortOrder: 'Sort Order',
+      status: 'Status',
+      actions: 'Actions',
+      descriptionLabel: 'Description',
+      discountLabel: 'Discount Label',
+      discountLabelPlaceholder: 'e.g., 20% Bonus',
+      markAsHot: 'Hot Label',
+      // Status values
+      active: 'Active',
+      inactive: 'Inactive',
+      hot: 'Hot',
+      // Messages
+      noProducts: 'No recharge products yet',
+      fetchFailed: 'Failed to load products',
+      updateSuccess: 'Product updated successfully',
+      createSuccess: 'Product created successfully',
+      saveFailed: 'Failed to save product',
+      deleteSuccess: 'Product deleted successfully',
+      confirmDelete: 'Confirm Delete',
+      deleteWarning: 'Are you sure you want to delete product "{name}"? This action cannot be undone.'
     }
   },
 
@@ -1489,5 +1613,67 @@ export default {
     resetIn: 'Resets in {time}',
     windowNotActive: 'Awaiting first use',
     usageOf: '{used} of {limit}'
+  },
+
+  // Recharge Page
+  recharge: {
+    title: 'Recharge',
+    description: 'Recharge balance to use API services',
+    currentBalance: 'Current Balance',
+    selectPackage: 'Select Package',
+    selectPaymentMethod: 'Select Payment Method',
+    alipay: 'Alipay',
+    wechat: 'WeChat Pay',
+    package: 'Package',
+    paymentAmount: 'Payment Amount',
+    balanceToAdd: 'Balance to Add',
+    payNow: 'Pay Now',
+    processing: 'Processing...',
+    hot: 'Hot',
+    getBalance: 'Get ${balance}',
+    bonus: 'Bonus ${bonus}',
+    noProducts: 'No recharge products available',
+    noPaymentMethods: 'No payment methods available',
+    orderHistory: 'Order History',
+    noOrders: 'No order history',
+    orderNo: 'Order No',
+    waitingForPayment: 'Waiting for payment...',
+    paymentWindowOpened: 'Payment window opened. Please complete payment in the new window.',
+    cancelPayment: 'Cancel Payment',
+    paymentSuccess: 'Payment successful! Balance updated.',
+    status: {
+      pending: 'Pending',
+      paid: 'Paid',
+      failed: 'Failed',
+      expired: 'Expired'
+    },
+    fetchProductsFailed: 'Failed to fetch recharge products',
+    createOrderFailed: 'Failed to create order',
+    pollingTimeout: 'Payment status check timed out, please refresh the page'
+  },
+
+  // Payment Result Page
+  paymentResult: {
+    title: 'Payment Result',
+    checking: 'Checking payment status...',
+    pleaseWait: 'Please wait',
+    success: 'Payment Successful',
+    balanceAdded: '${amount} has been added',
+    orderNo: 'Order No.',
+    paidAmount: 'Paid Amount',
+    balanceReceived: 'Balance Received',
+    pending: 'Awaiting Payment',
+    waitingForPayment: 'Order is waiting for payment',
+    autoRefresh: 'Page will automatically refresh payment status',
+    expired: 'Order Expired',
+    orderExpired: 'Order has expired, please create a new order',
+    failed: 'Payment Failed',
+    paymentFailed: 'Payment was not completed, please try again',
+    pollingTimeout: 'Status check timed out, please refresh to check order status manually',
+    error: 'Query Failed',
+    noOrderNo: 'Missing order number',
+    fetchFailed: 'Failed to fetch order',
+    backToRecharge: 'Back to Recharge',
+    backToDashboard: 'Back to Dashboard'
   }
 }

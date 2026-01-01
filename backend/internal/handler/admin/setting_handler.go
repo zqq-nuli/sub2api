@@ -64,6 +64,15 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		SSORedirectURI:       settings.SSORedirectURI,
 		SSOAllowedDomains:    settings.SSOAllowedDomains,
 		SSOAutoCreateUser:    settings.SSOAutoCreateUser,
+		// 易支付设置
+		EpayEnabled:     settings.EpayEnabled,
+		EpayApiURL:      settings.EpayApiURL,
+		EpayMerchantID:  settings.EpayMerchantID,
+		EpayMerchantKey: settings.EpayMerchantKey,
+		EpayNotifyURL:   settings.EpayNotifyURL,
+		EpayReturnURL:   settings.EpayReturnURL,
+		// 支付渠道
+		PaymentChannels: serviceChannelsToDTO(settings.PaymentChannels),
 	})
 }
 
@@ -108,6 +117,17 @@ type UpdateSettingsRequest struct {
 	SSORedirectURI       string   `json:"sso_redirect_uri"`
 	SSOAllowedDomains    []string `json:"sso_allowed_domains"`
 	SSOAutoCreateUser    bool     `json:"sso_auto_create_user"`
+
+	// 易支付设置
+	EpayEnabled     bool   `json:"epay_enabled"`
+	EpayApiURL      string `json:"epay_api_url"`
+	EpayMerchantID  string `json:"epay_merchant_id"`
+	EpayMerchantKey string `json:"epay_merchant_key"`
+	EpayNotifyURL   string `json:"epay_notify_url"`
+	EpayReturnURL   string `json:"epay_return_url"`
+
+	// 支付渠道配置
+	PaymentChannels []dto.PaymentChannel `json:"payment_channels"`
 }
 
 // UpdateSettings 更新系统设置
@@ -160,6 +180,15 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SSORedirectURI:       req.SSORedirectURI,
 		SSOAllowedDomains:    req.SSOAllowedDomains,
 		SSOAutoCreateUser:    req.SSOAutoCreateUser,
+		// 易支付设置
+		EpayEnabled:     req.EpayEnabled,
+		EpayApiURL:      req.EpayApiURL,
+		EpayMerchantID:  req.EpayMerchantID,
+		EpayMerchantKey: req.EpayMerchantKey,
+		EpayNotifyURL:   req.EpayNotifyURL,
+		EpayReturnURL:   req.EpayReturnURL,
+		// 支付渠道
+		PaymentChannels: dtoChannelsToService(req.PaymentChannels),
 	}
 
 	if err := h.settingService.UpdateSettings(c.Request.Context(), settings); err != nil {
@@ -204,6 +233,15 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SSORedirectURI:       updatedSettings.SSORedirectURI,
 		SSOAllowedDomains:    updatedSettings.SSOAllowedDomains,
 		SSOAutoCreateUser:    updatedSettings.SSOAutoCreateUser,
+		// 易支付设置
+		EpayEnabled:     updatedSettings.EpayEnabled,
+		EpayApiURL:      updatedSettings.EpayApiURL,
+		EpayMerchantID:  updatedSettings.EpayMerchantID,
+		EpayMerchantKey: updatedSettings.EpayMerchantKey,
+		EpayNotifyURL:   updatedSettings.EpayNotifyURL,
+		EpayReturnURL:   updatedSettings.EpayReturnURL,
+		// 支付渠道
+		PaymentChannels: serviceChannelsToDTO(updatedSettings.PaymentChannels),
 	})
 }
 
@@ -448,4 +486,42 @@ func (h *SettingHandler) UpdateSingleSetting(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"message": "Setting updated successfully"})
+}
+
+// dtoChannelsToService 将 DTO PaymentChannel 转换为 service PaymentChannel
+func dtoChannelsToService(channels []dto.PaymentChannel) []service.PaymentChannel {
+	if channels == nil {
+		return nil
+	}
+	result := make([]service.PaymentChannel, len(channels))
+	for i, ch := range channels {
+		result[i] = service.PaymentChannel{
+			Key:         ch.Key,
+			DisplayName: ch.DisplayName,
+			EpayType:    ch.EpayType,
+			Icon:        ch.Icon,
+			Enabled:     ch.Enabled,
+			SortOrder:   ch.SortOrder,
+		}
+	}
+	return result
+}
+
+// serviceChannelsToDTO 将 service PaymentChannel 转换为 DTO PaymentChannel
+func serviceChannelsToDTO(channels []service.PaymentChannel) []dto.PaymentChannel {
+	if channels == nil {
+		return nil
+	}
+	result := make([]dto.PaymentChannel, len(channels))
+	for i, ch := range channels {
+		result[i] = dto.PaymentChannel{
+			Key:         ch.Key,
+			DisplayName: ch.DisplayName,
+			EpayType:    ch.EpayType,
+			Icon:        ch.Icon,
+			Enabled:     ch.Enabled,
+			SortOrder:   ch.SortOrder,
+		}
+	}
+	return result
 }

@@ -105,3 +105,44 @@ const (
 
 // Admin API Key prefix (distinct from user "sk-" keys)
 const AdminApiKeyPrefix = "admin-"
+
+// 易支付设置
+const (
+	SettingKeyEpayEnabled        = "epay_enabled"        // 是否启用易支付
+	SettingKeyEpayApiURL         = "epay_api_url"        // 易支付API地址
+	SettingKeyEpayMerchantID     = "epay_merchant_id"    // 商户ID
+	SettingKeyEpayMerchantKey    = "epay_merchant_key"   // 商户密钥（加密存储）
+	SettingKeyEpayNotifyURL      = "epay_notify_url"     // 异步回调URL
+	SettingKeyEpayReturnURL      = "epay_return_url"     // 同步回调URL
+	SettingKeyPaymentChannels    = "payment_channels"    // 支付渠道配置（JSON数组）
+)
+
+// GetDefaultPaymentChannels 获取默认支付渠道配置
+func GetDefaultPaymentChannels() []PaymentChannel {
+	return []PaymentChannel{
+		{
+			Key:         "alipay",
+			DisplayName: "支付宝",
+			EpayType:    "epay",
+			Icon:        "alipay",
+			Enabled:     true,
+			SortOrder:   1,
+		},
+		{
+			Key:         "wxpay",
+			DisplayName: "微信支付",
+			EpayType:    "epay",
+			Icon:        "wechat",
+			Enabled:     true,
+			SortOrder:   2,
+		},
+		{
+			Key:         "epusdt",
+			DisplayName: "USDT",
+			EpayType:    "epay",
+			Icon:        "usdt",
+			Enabled:     true,
+			SortOrder:   3,
+		},
+	}
+}

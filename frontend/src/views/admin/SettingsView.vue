@@ -953,6 +953,208 @@
           </div>
         </div>
 
+        <!-- Epay Settings Card -->
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.settings.epay.title') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.settings.epay.description') }}
+            </p>
+          </div>
+          <div class="space-y-5 p-6">
+            <!-- Enable Epay -->
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="font-medium text-gray-900 dark:text-white">{{
+                  t('admin.settings.epay.enableEpay')
+                }}</label>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.epay.enableEpayHint') }}
+                </p>
+              </div>
+              <Toggle v-model="form.epay_enabled" />
+            </div>
+
+            <!-- Epay Configuration - Only show when enabled -->
+            <div
+              v-if="form.epay_enabled"
+              class="border-t border-gray-100 pt-4 dark:border-dark-700"
+            >
+              <div class="grid grid-cols-1 gap-6">
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('admin.settings.epay.apiUrl') }}
+                  </label>
+                  <input
+                    v-model="form.epay_api_url"
+                    type="text"
+                    class="input font-mono text-sm"
+                    placeholder="https://pay.example.com"
+                  />
+                  <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t('admin.settings.epay.apiUrlHint') }}
+                  </p>
+                </div>
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t('admin.settings.epay.merchantId') }}
+                    </label>
+                    <input
+                      v-model="form.epay_merchant_id"
+                      type="text"
+                      class="input font-mono text-sm"
+                      placeholder="1000"
+                    />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.epay.merchantIdHint') }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t('admin.settings.epay.merchantKey') }}
+                    </label>
+                    <input
+                      v-model="form.epay_merchant_key"
+                      type="password"
+                      class="input font-mono text-sm"
+                      placeholder="********"
+                    />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.epay.merchantKeyHint') }}
+                    </p>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t('admin.settings.epay.notifyUrl') }}
+                    </label>
+                    <input
+                      v-model="form.epay_notify_url"
+                      type="text"
+                      class="input font-mono text-sm"
+                      readonly
+                    />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.epay.notifyUrlHint') }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {{ t('admin.settings.epay.returnUrl') }}
+                    </label>
+                    <input
+                      v-model="form.epay_return_url"
+                      type="text"
+                      class="input font-mono text-sm"
+                      readonly
+                    />
+                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.epay.returnUrlHint') }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Payment Channels Configuration -->
+                <div class="border-t border-gray-100 pt-4 dark:border-dark-700">
+                  <div class="mb-3 flex items-center justify-between">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ t('admin.settings.epay.paymentChannels') }}
+                      </label>
+                      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        {{ t('admin.settings.epay.paymentChannelsHint') }}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      @click="showAddChannelDialog = true"
+                      class="btn btn-secondary btn-sm"
+                    >
+                      <svg class="mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                      {{ t('admin.settings.epay.addChannel') }}
+                    </button>
+                  </div>
+                  <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-dark-600">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-dark-600">
+                      <thead class="bg-gray-50 dark:bg-dark-700">
+                        <tr>
+                          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            {{ t('admin.settings.epay.channelEnabled') }}
+                          </th>
+                          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            {{ t('admin.settings.epay.channelName') }}
+                          </th>
+                          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            {{ t('admin.settings.epay.channelDisplayName') }}
+                          </th>
+                          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            {{ t('admin.settings.epay.channelEpayType') }}
+                          </th>
+                          <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            {{ t('common.actions') }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-200 bg-white dark:divide-dark-600 dark:bg-dark-800">
+                        <tr v-for="(channel, index) in form.payment_channels" :key="channel.key">
+                          <td class="px-4 py-3">
+                            <Toggle v-model="form.payment_channels[index].enabled" />
+                          </td>
+                          <td class="px-4 py-3">
+                            <span class="font-mono text-sm text-gray-900 dark:text-gray-100">{{ channel.key }}</span>
+                          </td>
+                          <td class="px-4 py-3">
+                            <input
+                              v-model="form.payment_channels[index].display_name"
+                              type="text"
+                              class="input w-32 text-sm"
+                              :placeholder="channel.key"
+                            />
+                          </td>
+                          <td class="px-4 py-3">
+                            <input
+                              v-model="form.payment_channels[index].epay_type"
+                              type="text"
+                              class="input w-24 font-mono text-sm"
+                              placeholder="epay"
+                            />
+                          </td>
+                          <td class="px-4 py-3">
+                            <button
+                              type="button"
+                              @click="deletePaymentChannel(index)"
+                              class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                              :title="t('common.delete')"
+                            >
+                              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                        <tr v-if="form.payment_channels.length === 0">
+                          <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                            {{ t('admin.settings.epay.noChannels') }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                    {{ t('admin.settings.epay.epayTypeNote') }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- SSO Edit Dialog -->
         <SettingEditDialog
           :show="showSsoEditDialog"
@@ -965,6 +1167,95 @@
           @close="showSsoEditDialog = false"
           @save="saveSSOSetting"
         />
+
+        <!-- Add Payment Channel Dialog -->
+        <Teleport to="body">
+          <div
+            v-if="showAddChannelDialog"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            @click.self="showAddChannelDialog = false"
+          >
+            <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-dark-800">
+              <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t('admin.settings.epay.addChannel') }}
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('admin.settings.epay.channelKey') }}
+                    <span class="ml-1 text-xs text-red-500">*</span>
+                  </label>
+                  <input
+                    v-model="newChannel.key"
+                    type="text"
+                    class="input font-mono text-sm"
+                    :placeholder="t('admin.settings.epay.channelKeyPlaceholder')"
+                  />
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t('admin.settings.epay.channelKeyHint') }}
+                  </p>
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('admin.settings.epay.channelDisplayName') }}
+                    <span class="ml-1 text-xs text-red-500">*</span>
+                  </label>
+                  <input
+                    v-model="newChannel.display_name"
+                    type="text"
+                    class="input text-sm"
+                    :placeholder="t('admin.settings.epay.channelDisplayNamePlaceholder')"
+                  />
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('admin.settings.epay.channelEpayType') }}
+                  </label>
+                  <input
+                    v-model="newChannel.epay_type"
+                    type="text"
+                    class="input font-mono text-sm"
+                    placeholder="epay"
+                  />
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t('admin.settings.epay.epayTypeHint') }}
+                  </p>
+                </div>
+                <div>
+                  <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {{ t('admin.settings.epay.channelIcon') }}
+                  </label>
+                  <input
+                    v-model="newChannel.icon"
+                    type="text"
+                    class="input font-mono text-sm"
+                    placeholder="credit-card"
+                  />
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t('admin.settings.epay.channelIconHint') }}
+                  </p>
+                </div>
+              </div>
+              <div class="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  @click="showAddChannelDialog = false"
+                  class="btn btn-secondary"
+                >
+                  {{ t('common.cancel') }}
+                </button>
+                <button
+                  type="button"
+                  @click="addPaymentChannel"
+                  :disabled="!newChannel.key || !newChannel.display_name"
+                  class="btn btn-primary"
+                >
+                  {{ t('common.add') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Teleport>
 
         <!-- Save Button -->
         <div class="flex justify-end">
@@ -996,7 +1287,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api'
-import type { SystemSettings } from '@/api/admin/settings'
+import type { SystemSettings, PaymentChannel } from '@/api/admin/settings'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import SettingEditDialog from '@/components/admin/SettingEditDialog.vue'
@@ -1029,6 +1320,15 @@ const editingSettingType = ref<'text' | 'password' | 'number' | 'url' | 'array' 
 const editingSettingValue = ref<any>('')
 const editingSettingPlaceholder = ref('')
 
+// Payment Channel 状态
+const showAddChannelDialog = ref(false)
+const newChannel = reactive({
+  key: '',
+  display_name: '',
+  epay_type: 'epay',
+  icon: 'credit-card'
+})
+
 const form = reactive<SystemSettings>({
   registration_enabled: true,
   email_verify_enabled: false,
@@ -1060,7 +1360,20 @@ const form = reactive<SystemSettings>({
   sso_redirect_uri: '',
   sso_allowed_domains: [],
   sso_auto_create_user: true,
-  sso_min_trust_level: 0
+  sso_min_trust_level: 0,
+  // Epay Settings
+  epay_enabled: false,
+  epay_api_url: '',
+  epay_merchant_id: '',
+  epay_merchant_key: '',
+  epay_notify_url: '',
+  epay_return_url: '',
+  // Payment Channels
+  payment_channels: [
+    { key: 'alipay', display_name: '支付宝', epay_type: 'epay', icon: 'alipay', enabled: true, sort_order: 1 },
+    { key: 'wxpay', display_name: '微信支付', epay_type: 'epay', icon: 'wechat', enabled: true, sort_order: 2 },
+    { key: 'epusdt', display_name: 'USDT', epay_type: 'epay', icon: 'usdt', enabled: true, sort_order: 3 }
+  ] as PaymentChannel[]
 })
 
 function handleLogoUpload(event: Event) {
@@ -1373,8 +1686,53 @@ async function testSSOConnection() {
   }
 }
 
+// Payment Channel Methods
+function addPaymentChannel() {
+  // 验证 key 是否唯一
+  const existingKeys = form.payment_channels.map(c => c.key.toLowerCase())
+  if (existingKeys.includes(newChannel.key.toLowerCase())) {
+    appStore.showError(t('admin.settings.epay.channelKeyExists'))
+    return
+  }
+
+  // 添加新渠道
+  const maxSortOrder = form.payment_channels.reduce((max, c) => Math.max(max, c.sort_order || 0), 0)
+  form.payment_channels.push({
+    key: newChannel.key.toLowerCase(),
+    display_name: newChannel.display_name,
+    epay_type: newChannel.epay_type || 'epay',
+    icon: newChannel.icon || 'credit-card',
+    enabled: true,
+    sort_order: maxSortOrder + 1
+  })
+
+  // 重置表单并关闭对话框
+  newChannel.key = ''
+  newChannel.display_name = ''
+  newChannel.epay_type = 'epay'
+  newChannel.icon = 'credit-card'
+  showAddChannelDialog.value = false
+
+  appStore.showSuccess(t('admin.settings.epay.channelAdded'))
+}
+
+function deletePaymentChannel(index: number) {
+  const channel = form.payment_channels[index]
+  if (!confirm(t('admin.settings.epay.confirmDeleteChannel', { name: channel.display_name }))) {
+    return
+  }
+
+  form.payment_channels.splice(index, 1)
+  appStore.showSuccess(t('admin.settings.epay.channelDeleted'))
+}
+
 onMounted(() => {
   loadSettings()
   loadAdminApiKey()
+
+  // Initialize Epay callback URLs based on current location
+  const baseUrl = window.location.origin
+  form.epay_notify_url = `${baseUrl}/api/v1/payment/notify/epay`
+  form.epay_return_url = `${baseUrl}/recharge/result`
 })
 </script>

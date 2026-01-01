@@ -14,6 +14,8 @@ import systemAPI from './system'
 import subscriptionsAPI from './subscriptions'
 import usageAPI from './usage'
 import geminiAPI from './gemini'
+import ordersAPI from './orders'
+import rechargeProductsAPI from './recharge-products'
 
 /**
  * Unified admin API object for convenient access
@@ -29,7 +31,9 @@ export const adminAPI = {
   system: systemAPI,
   subscriptions: subscriptionsAPI,
   usage: usageAPI,
-  gemini: geminiAPI
+  gemini: geminiAPI,
+  orders: ordersAPI,
+  rechargeProducts: rechargeProductsAPI
 }
 
 export {
@@ -43,7 +47,9 @@ export {
   systemAPI,
   subscriptionsAPI,
   usageAPI,
-  geminiAPI
+  geminiAPI,
+  ordersAPI,
+  rechargeProductsAPI
 }
 
 export default adminAPI

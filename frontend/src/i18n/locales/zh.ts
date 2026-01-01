@@ -146,6 +146,7 @@ export default {
     apiKeys: 'API 密钥',
     usage: '使用记录',
     redeem: '兑换',
+    recharge: '充值',
     profile: '个人资料',
     users: '用户管理',
     groups: '分组管理',
@@ -153,6 +154,8 @@ export default {
     accounts: '账号管理',
     proxies: 'IP管理',
     redeemCodes: '兑换码',
+    orders: '订单管理',
+    rechargeProducts: '充值套餐',
     settings: '系统设置',
     myAccount: '我的账户',
     lightMode: '浅色模式',
@@ -1618,7 +1621,128 @@ export default {
       failedToLoad: '加载设置失败',
       failedToSave: '保存设置失败',
       failedToTestSmtp: 'SMTP 连接测试失败',
-      failedToSendTestEmail: '发送测试邮件失败'
+      failedToSendTestEmail: '发送测试邮件失败',
+      // Epay Settings
+      epay: {
+        title: '易支付设置',
+        description: '配置易支付支付网关',
+        enableEpay: '启用易支付',
+        enableEpayHint: '启用易支付充值功能',
+        apiUrl: 'API 地址',
+        apiUrlHint: '易支付网关地址，例如：https://pay.example.com',
+        merchantId: '商户ID',
+        merchantIdHint: '易支付商户ID',
+        merchantKey: '商户密钥',
+        merchantKeyHint: '易支付商户密钥（请妥善保管）',
+        notifyUrl: '异步回调URL',
+        notifyUrlHint: '支付成功后的异步通知地址',
+        returnUrl: '同步回调URL',
+        returnUrlHint: '支付完成后的跳转地址',
+        paymentChannels: '支付渠道配置',
+        paymentChannelsHint: '配置各支付渠道的显示名称和网关类型参数',
+        channelEnabled: '启用',
+        channelName: '渠道标识',
+        channelDisplayName: '显示名称',
+        channelEpayType: '网关类型',
+        epayTypeNote: '提示：linux.do credit 等平台需要使用 epay 作为网关类型，标准易支付网关使用 alipay、wxpay 等',
+        addChannel: '添加渠道',
+        channelKey: '渠道标识',
+        channelKeyPlaceholder: '例如：paypal',
+        channelKeyHint: '唯一标识符，只能使用小写字母和数字',
+        channelDisplayNamePlaceholder: '例如：PayPal',
+        epayTypeHint: '易支付网关的支付类型参数',
+        channelIcon: '图标标识',
+        channelIconHint: '图标名称，用于前端显示',
+        channelKeyExists: '渠道标识已存在',
+        channelAdded: '渠道添加成功',
+        channelDeleted: '渠道删除成功',
+        confirmDeleteChannel: '确定要删除渠道 "{name}" 吗？',
+        noChannels: '暂无支付渠道'
+      }
+    },
+
+    // Orders Management
+    orders: {
+      title: '订单管理',
+      description: '管理充值订单',
+      searchOrderNo: '搜索订单号...',
+      allStatus: '全部状态',
+      allPaymentMethods: '全部支付方式',
+      // Statistics
+      totalOrders: '订单总数',
+      pendingOrders: '待支付',
+      paidOrders: '已支付',
+      totalAmount: '总收入',
+      // Columns
+      orderNo: '订单号',
+      user: '用户',
+      product: '套餐',
+      amount: '支付金额',
+      actualAmount: '到账金额',
+      paymentMethod: '支付方式',
+      statusColumn: '状态',
+      createdAt: '创建时间',
+      paidAt: '支付时间',
+      actions: '操作',
+      // Status values (nested under status for t('admin.orders.status.pending') etc.)
+      status: {
+        pending: '待支付',
+        paid: '已支付',
+        failed: '失败',
+        expired: '已过期'
+      },
+      // Payment methods
+      alipay: '支付宝',
+      wechat: '微信支付',
+      usdt: 'USDT',
+      // Detail modal
+      view: '查看',
+      orderDetail: '订单详情',
+      paidAmount: '支付金额',
+      balance: '到账余额',
+      tradeNo: '交易号',
+      notes: '备注',
+      // Pagination
+      showing: '显示 {from} - {to}，共 {total} 条',
+      // Messages
+      noOrders: '暂无订单',
+      noOrdersDescription: '暂时没有充值订单记录',
+      fetchFailed: '加载订单失败',
+      failedToLoad: '加载订单失败',
+      exportCsv: '导出 CSV'
+    },
+
+    // Recharge Products Management
+    rechargeProducts: {
+      title: '充值套餐管理',
+      description: '管理充值套餐配置',
+      create: '创建套餐',
+      edit: '编辑套餐',
+      // Table columns
+      name: '名称',
+      amount: '支付金额 (CNY)',
+      balance: '基础余额 (USD)',
+      bonus: '赠送余额 (USD)',
+      sortOrder: '排序',
+      status: '状态',
+      actions: '操作',
+      descriptionLabel: '描述',
+      discountLabel: '优惠标签',
+      discountLabelPlaceholder: '例如：赠送20%',
+      markAsHot: '热门标签',
+      // Status values
+      active: '启用',
+      inactive: '禁用',
+      hot: '热门',
+      // Messages
+      noProducts: '暂无充值套餐',
+      fetchFailed: '加载套餐失败',
+      updateSuccess: '套餐更新成功',
+      createSuccess: '套餐创建成功',
+      saveFailed: '保存套餐失败',
+      deleteSuccess: '套餐删除成功',
+      confirmDelete: '确认删除',
+      deleteWarning: '确定要删除套餐 "{name}" 吗？此操作无法撤销。'
     }
   },
 
@@ -1685,5 +1809,67 @@ export default {
     resetIn: '{time} 后重置',
     windowNotActive: '等待首次使用',
     usageOf: '已用 {used} / {limit}'
+  },
+
+  // Recharge Page
+  recharge: {
+    title: '充值',
+    description: '充值余额以使用 API 服务',
+    currentBalance: '当前余额',
+    selectPackage: '选择充值套餐',
+    selectPaymentMethod: '选择支付方式',
+    alipay: '支付宝',
+    wechat: '微信支付',
+    package: '套餐',
+    paymentAmount: '支付金额',
+    balanceToAdd: '到账余额',
+    payNow: '立即支付',
+    processing: '处理中...',
+    hot: '热门',
+    getBalance: '到账 ${balance}',
+    bonus: '赠送 ${bonus}',
+    noProducts: '暂无充值套餐',
+    noPaymentMethods: '暂无可用支付方式',
+    orderHistory: '充值记录',
+    noOrders: '暂无充值记录',
+    orderNo: '订单号',
+    waitingForPayment: '等待支付中...',
+    paymentWindowOpened: '支付窗口已打开，请在新窗口完成支付',
+    cancelPayment: '取消支付',
+    paymentSuccess: '支付成功！余额已更新',
+    status: {
+      pending: '待支付',
+      paid: '已支付',
+      failed: '支付失败',
+      expired: '已过期'
+    },
+    fetchProductsFailed: '获取充值套餐失败',
+    createOrderFailed: '创建订单失败',
+    pollingTimeout: '支付状态查询超时，请稍后刷新页面查看'
+  },
+
+  // Payment Result Page
+  paymentResult: {
+    title: '支付结果',
+    checking: '正在查询支付结果...',
+    pleaseWait: '请稍候',
+    success: '支付成功',
+    balanceAdded: '已到账 ${amount}',
+    orderNo: '订单号',
+    paidAmount: '支付金额',
+    balanceReceived: '到账余额',
+    pending: '等待支付',
+    waitingForPayment: '订单正在等待支付',
+    autoRefresh: '页面将自动刷新支付状态',
+    expired: '订单已过期',
+    orderExpired: '订单已过期，请重新下单',
+    failed: '支付失败',
+    paymentFailed: '支付未完成，请重试',
+    pollingTimeout: '查询超时，请刷新页面手动查看订单状态',
+    error: '查询失败',
+    noOrderNo: '缺少订单号',
+    fetchFailed: '查询订单失败',
+    backToRecharge: '返回充值页面',
+    backToDashboard: '返回仪表盘'
   }
 }

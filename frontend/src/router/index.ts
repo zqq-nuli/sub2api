@@ -154,6 +154,29 @@ const routes: RouteRecordRaw[] = [
       descriptionKey: 'userSubscriptions.description'
     }
   },
+  {
+    path: '/recharge',
+    name: 'Recharge',
+    component: () => import('@/views/user/RechargeView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Recharge',
+      titleKey: 'recharge.title',
+      descriptionKey: 'recharge.description'
+    }
+  },
+  {
+    path: '/recharge/result',
+    name: 'PaymentResult',
+    component: () => import('@/views/user/PaymentResultView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Payment Result',
+      titleKey: 'paymentResult.title'
+    }
+  },
 
   // ==================== Admin Routes ====================
   {
@@ -266,6 +289,30 @@ const routes: RouteRecordRaw[] = [
       title: 'Usage Records',
       titleKey: 'admin.usage.title',
       descriptionKey: 'admin.usage.description'
+    }
+  },
+  {
+    path: '/admin/orders',
+    name: 'AdminOrders',
+    component: () => import('@/views/admin/OrdersView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Order Management',
+      titleKey: 'admin.orders.title',
+      descriptionKey: 'admin.orders.description'
+    }
+  },
+  {
+    path: '/admin/recharge-products',
+    name: 'AdminRechargeProducts',
+    component: () => import('@/views/admin/RechargeProductsView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Recharge Products',
+      titleKey: 'admin.rechargeProducts.title',
+      descriptionKey: 'admin.rechargeProducts.description'
     }
   },
 

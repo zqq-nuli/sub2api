@@ -22,21 +22,25 @@ func ProvideAdminHandlers(
 	systemHandler *admin.SystemHandler,
 	subscriptionHandler *admin.SubscriptionHandler,
 	usageHandler *admin.UsageHandler,
+	orderHandler *admin.OrderHandler,
+	rechargeProductHandler *admin.RechargeProductHandler,
 ) *AdminHandlers {
 	return &AdminHandlers{
-		Dashboard:    dashboardHandler,
-		User:         userHandler,
-		Group:        groupHandler,
-		Account:      accountHandler,
-		OAuth:        oauthHandler,
-		OpenAIOAuth:  openaiOAuthHandler,
-		GeminiOAuth:  geminiOAuthHandler,
-		Proxy:        proxyHandler,
-		Redeem:       redeemHandler,
-		Setting:      settingHandler,
-		System:       systemHandler,
-		Subscription: subscriptionHandler,
-		Usage:        usageHandler,
+		Dashboard:       dashboardHandler,
+		User:            userHandler,
+		Group:           groupHandler,
+		Account:         accountHandler,
+		OAuth:           oauthHandler,
+		OpenAIOAuth:     openaiOAuthHandler,
+		GeminiOAuth:     geminiOAuthHandler,
+		Proxy:           proxyHandler,
+		Redeem:          redeemHandler,
+		Setting:         settingHandler,
+		System:          systemHandler,
+		Subscription:    subscriptionHandler,
+		Usage:           usageHandler,
+		Order:           orderHandler,
+		RechargeProduct: rechargeProductHandler,
 	}
 }
 
@@ -63,6 +67,8 @@ func ProvideHandlers(
 	openaiGatewayHandler *OpenAIGatewayHandler,
 	settingHandler *SettingHandler,
 	ssoHandler *SSOHandler,
+	orderHandler *OrderHandler,
+	paymentHandler *PaymentHandler,
 ) *Handlers {
 	return &Handlers{
 		Auth:          authHandler,
@@ -76,6 +82,8 @@ func ProvideHandlers(
 		OpenAIGateway: openaiGatewayHandler,
 		Setting:       settingHandler,
 		SSO:           ssoHandler,
+		Order:         orderHandler,
+		Payment:       paymentHandler,
 	}
 }
 
@@ -92,6 +100,8 @@ var ProviderSet = wire.NewSet(
 	NewOpenAIGatewayHandler,
 	ProvideSettingHandler,
 	NewSSOHandler,
+	NewOrderHandler,
+	NewPaymentHandler,
 
 	// Admin handlers
 	admin.NewDashboardHandler,
@@ -107,6 +117,8 @@ var ProviderSet = wire.NewSet(
 	ProvideSystemHandler,
 	admin.NewSubscriptionHandler,
 	admin.NewUsageHandler,
+	admin.NewOrderHandler,
+	admin.NewRechargeProductHandler,
 
 	// AdminHandlers and Handlers constructors
 	ProvideAdminHandlers,

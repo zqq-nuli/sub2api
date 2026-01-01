@@ -6,6 +6,18 @@
 import { apiClient } from '../client'
 
 /**
+ * Payment channel configuration
+ */
+export interface PaymentChannel {
+  key: string           // Channel identifier: alipay, wxpay, epusdt
+  display_name: string  // Display name
+  epay_type: string     // Gateway parameter: epay, alipay, wxpay, etc.
+  icon: string          // Icon identifier
+  enabled: boolean      // Whether enabled
+  sort_order: number    // Sort order
+}
+
+/**
  * System settings interface
  */
 export interface SystemSettings {
@@ -44,6 +56,15 @@ export interface SystemSettings {
   sso_allowed_domains: string[]
   sso_auto_create_user: boolean
   sso_min_trust_level: number
+  // Epay settings
+  epay_enabled: boolean
+  epay_api_url: string
+  epay_merchant_id: string
+  epay_merchant_key: string
+  epay_notify_url: string
+  epay_return_url: string
+  // Payment channels
+  payment_channels: PaymentChannel[]
 }
 
 /**

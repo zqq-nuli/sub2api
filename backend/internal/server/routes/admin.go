@@ -51,6 +51,12 @@ func RegisterAdminRoutes(
 
 		// 使用记录管理
 		registerUsageRoutes(admin, h)
+
+		// 订单管理
+		registerOrderRoutes(admin, h)
+
+		// 充值套餐管理
+		registerRechargeProductRoutes(admin, h)
 	}
 }
 
@@ -231,5 +237,26 @@ func registerUsageRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		usage.GET("/stats", h.Admin.Usage.Stats)
 		usage.GET("/search-users", h.Admin.Usage.SearchUsers)
 		usage.GET("/search-api-keys", h.Admin.Usage.SearchApiKeys)
+	}
+}
+
+func registerOrderRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	orders := admin.Group("/orders")
+	{
+		orders.GET("", h.Admin.Order.ListOrders)
+		orders.GET("/statistics", h.Admin.Order.GetStatistics)
+		orders.GET("/:id", h.Admin.Order.GetOrderByID)
+		orders.PUT("/:id", h.Admin.Order.UpdateOrderStatus)
+	}
+}
+
+func registerRechargeProductRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	products := admin.Group("/recharge-products")
+	{
+		products.GET("", h.Admin.RechargeProduct.ListProducts)
+		products.GET("/:id", h.Admin.RechargeProduct.GetProductByID)
+		products.POST("", h.Admin.RechargeProduct.CreateProduct)
+		products.PUT("/:id", h.Admin.RechargeProduct.UpdateProduct)
+		products.DELETE("/:id", h.Admin.RechargeProduct.DeleteProduct)
 	}
 }

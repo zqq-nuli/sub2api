@@ -33,6 +33,9 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		config.ProviderSet,
 		infrastructure.ProviderSet,
 
+		// 绑定接口
+		wire.Bind(new(service.CryptoService), new(*infrastructure.CryptoService)),
+
 		// 业务层 ProviderSets
 		repository.ProviderSet,
 		service.ProviderSet,

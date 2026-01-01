@@ -25,6 +25,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&usageLogModel{},
 		&settingModel{},
 		&userSubscriptionModel{},
+		&orderModel{},
+		&rechargeProductModel{},
 	)
 	if err != nil {
 		return err
@@ -32,6 +34,11 @@ func AutoMigrate(db *gorm.DB) error {
 
 	// 创建默认分组(简易模式支持)
 	if err := ensureDefaultGroups(db); err != nil {
+		return err
+	}
+
+	// 创建默认充值套餐
+	if err := ensureDefaultRechargeProducts(db); err != nil {
 		return err
 	}
 
@@ -99,6 +106,92 @@ func ensureDefaultGroups(db *gorm.DB) error {
 				return err
 			}
 			log.Printf("[AutoMigrate] Created default group: %s (platform: %s)", dg.name, dg.platform)
+		}
+	}
+
+	return nil
+}
+
+// ensureDefaultRechargeProducts 确保默认充值套餐存在
+func ensureDefaultRechargeProducts(db *gorm.DB) error {
+	defaultProducts := []rechargeProductModel{
+		{
+			Name:          "10元充值",
+			Amount:        10.00,
+			Balance:       1.00,
+			BonusBalance:  0.00,
+			SortOrder:     1,
+			IsHot:         false,
+			DiscountLabel: "",
+			Status:        "active",
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		},
+		{
+			Name:          "30元充值",
+			Amount:        30.00,
+			Balance:       3.00,
+			BonusBalance:  0.30,
+			SortOrder:     2,
+			IsHot:         false,
+			DiscountLabel: "赠送10%",
+			Status:        "active",
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		},
+		{
+			Name:          "50元充值",
+			Amount:        50.00,
+			Balance:       5.00,
+			BonusBalance:  1.00,
+			SortOrder:     3,
+			IsHot:         true,
+			DiscountLabel: "赠送20%",
+			Status:        "active",
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		},
+		{
+			Name:          "100元充值",
+			Amount:        100.00,
+			Balance:       10.00,
+			BonusBalance:  2.50,
+			SortOrder:     4,
+			IsHot:         true,
+			DiscountLabel: "赠送25%",
+			Status:        "active",
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		},
+		{
+			Name:          "200元充值",
+			Amount:        200.00,
+			Balance:       20.00,
+			BonusBalance:  6.00,
+			SortOrder:     5,
+			IsHot:         false,
+			DiscountLabel: "赠送30%",
+			Status:        "active",
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		},
+	}
+
+	// 检查是否已有套餐
+	var count int64
+	if err := db.Model(&rechargeProductModel{}).Count(&count).Error; err != nil {
+		return err
+	}
+
+	// 如果没有套餐，创建默认套餐
+	if count == 0 {
+		for _, product := range defaultProducts {
+			if err := db.Create(&product).Error; err != nil {
+				log.Printf("[AutoMigrate] Failed to create default recharge product %s: %v", product.Name, err)
+				return err
+			}
+			log.Printf("[AutoMigrate] Created default recharge product: %s (Amount: %.2f CNY, Balance: %.2f USD)",
+				product.Name, product.Amount, product.Balance+product.BonusBalance)
 		}
 	}
 
