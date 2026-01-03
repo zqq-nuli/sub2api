@@ -53,6 +53,7 @@ var ProviderSet = wire.NewSet(
 	NewGeminiTokenCache,
 	NewPaymentCache,
 	NewRechargeProductCache,
+	NewSSOSessionCache,
 
 	// HTTP service ports (DI Strategy A: return interface directly)
 	NewTurnstileVerifier,

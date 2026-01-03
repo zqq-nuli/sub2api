@@ -14,9 +14,20 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/oidc"
 )
 
+// ssoSessionTTL is the TTL for SSO sessions (30 minutes)
+const ssoSessionTTL = 30 * time.Minute
+
+// OIDCSessionCache defines the Redis cache interface for SSO sessions
+type OIDCSessionCache interface {
+	Set(ctx context.Context, sessionID string, session *OIDCSession, ttl time.Duration) error
+	Get(ctx context.Context, sessionID string) (*OIDCSession, error)
+	Delete(ctx context.Context, sessionID string) error
+}
+
 // OIDCSSOService handles SSO authentication using OIDC for user login
 type OIDCSSOService struct {
-	sessionStore   *OIDCSessionStore
+	sessionCache   OIDCSessionCache  // Redis cache (primary)
+	memoryFallback *OIDCSessionStore // Memory fallback (backup)
 	oidcClient     *oidc.OIDCClient
 	settingService *SettingService
 	userRepo       UserRepository
@@ -29,9 +40,11 @@ func NewOIDCSSOService(
 	settingService *SettingService,
 	userRepo UserRepository,
 	authService *AuthService,
+	sessionCache OIDCSessionCache,
 ) *OIDCSSOService {
 	service := &OIDCSSOService{
-		sessionStore:   NewOIDCSessionStore(),
+		sessionCache:   sessionCache,
+		memoryFallback: NewOIDCSessionStore(),
 		oidcClient:     oidc.NewOIDCClient(),
 		settingService: settingService,
 		userRepo:       userRepo,
@@ -39,8 +52,8 @@ func NewOIDCSSOService(
 		stopCh:         make(chan struct{}),
 	}
 
-	// Start cleanup goroutine
-	go service.sessionStore.StartCleanup(service.stopCh)
+	// Start cleanup goroutine for memory fallback
+	go service.memoryFallback.StartCleanup(service.stopCh)
 
 	return service
 }
@@ -48,6 +61,35 @@ func NewOIDCSSOService(
 // Stop stops the SSO service
 func (s *OIDCSSOService) Stop() {
 	close(s.stopCh)
+}
+
+// setSession stores a session in Redis with memory fallback
+func (s *OIDCSSOService) setSession(ctx context.Context, sessionID string, session *OIDCSession) error {
+	err := s.sessionCache.Set(ctx, sessionID, session, ssoSessionTTL)
+	if err != nil {
+		log.Printf("[SSO] Warning: Redis session cache failed, using memory fallback: %v", err)
+		s.memoryFallback.Set(sessionID, session)
+	}
+	return nil
+}
+
+// getSession retrieves a session from Redis with memory fallback
+func (s *OIDCSSOService) getSession(ctx context.Context, sessionID string) (*OIDCSession, bool) {
+	session, err := s.sessionCache.Get(ctx, sessionID)
+	if err == nil {
+		return session, true
+	}
+	// Redis failed or key not found, try memory fallback
+	log.Printf("[SSO] Warning: Redis session cache get failed, trying memory fallback: %v", err)
+	return s.memoryFallback.Get(sessionID)
+}
+
+// deleteSession removes a session from both Redis and memory
+func (s *OIDCSSOService) deleteSession(ctx context.Context, sessionID string) {
+	if err := s.sessionCache.Delete(ctx, sessionID); err != nil {
+		log.Printf("[SSO] Warning: Failed to delete session from Redis: %v", err)
+	}
+	s.memoryFallback.Delete(sessionID)
 }
 
 // OIDCSessionStore manages OIDC sessions
@@ -167,7 +209,9 @@ func (s *OIDCSSOService) GenerateAuthURL(ctx context.Context) (*OIDCAuthURLResul
 		RedirectURI:  ssoConfig.RedirectURI,
 		CreatedAt:    time.Now(),
 	}
-	s.sessionStore.Set(sessionID, session)
+	if err := s.setSession(ctx, sessionID, session); err != nil {
+		return nil, fmt.Errorf("failed to store session: %w", err)
+	}
 
 	// Build authorization URL
 	authURL := oidc.BuildAuthorizationURL(
@@ -188,7 +232,7 @@ func (s *OIDCSSOService) GenerateAuthURL(ctx context.Context) (*OIDCAuthURLResul
 // ExchangeCodeAndCreateUser exchanges an authorization code and creates/logs in a user
 func (s *OIDCSSOService) ExchangeCodeAndCreateUser(ctx context.Context, code, state, sessionID string) (string, *User, bool, error) {
 	// Retrieve session
-	session, ok := s.sessionStore.Get(sessionID)
+	session, ok := s.getSession(ctx, sessionID)
 	if !ok {
 		return "", nil, false, infraerrors.BadRequest("SESSION_EXPIRED",
 			"SSO session not found or expired, please try again")
@@ -201,7 +245,7 @@ func (s *OIDCSSOService) ExchangeCodeAndCreateUser(ctx context.Context, code, st
 	}
 
 	// Clean up session
-	defer s.sessionStore.Delete(sessionID)
+	defer s.deleteSession(ctx, sessionID)
 
 	// Get SSO configuration
 	ssoConfig, err := s.getSSOConfig(ctx)

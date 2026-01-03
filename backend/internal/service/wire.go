@@ -76,8 +76,9 @@ func ProvideOIDCSSOService(
 	settingService *SettingService,
 	userRepo UserRepository,
 	authService *AuthService,
+	sessionCache OIDCSessionCache,
 ) *OIDCSSOService {
-	svc := NewOIDCSSOService(settingService, userRepo, authService)
+	svc := NewOIDCSSOService(settingService, userRepo, authService, sessionCache)
 	return svc
 }
 
