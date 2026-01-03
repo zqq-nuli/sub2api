@@ -254,9 +254,9 @@ func (c *Client) LoadCodeAssist(ctx context.Context, accessToken string) (*LoadC
 		return nil, nil, fmt.Errorf("响应解析失败: %w", err)
 	}
 
-	// 解析原始 JSON 为 map
+	// 解析原始 JSON 为 map（主解析已验证格式，此处错误可安全忽略）
 	var rawResp map[string]any
-	_ = json.Unmarshal(respBodyBytes, &rawResp)
+	_ = json.Unmarshal(respBodyBytes, &rawResp) //nolint:errcheck // 主解析已验证 JSON 格式
 
 	return &loadResp, rawResp, nil
 }
@@ -319,9 +319,9 @@ func (c *Client) FetchAvailableModels(ctx context.Context, accessToken, projectI
 		return nil, nil, fmt.Errorf("响应解析失败: %w", err)
 	}
 
-	// 解析原始 JSON 为 map
+	// 解析原始 JSON 为 map（主解析已验证格式，此处错误可安全忽略）
 	var rawResp map[string]any
-	_ = json.Unmarshal(respBodyBytes, &rawResp)
+	_ = json.Unmarshal(respBodyBytes, &rawResp) //nolint:errcheck // 主解析已验证 JSON 格式
 
 	return &modelsResp, rawResp, nil
 }

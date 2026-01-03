@@ -449,7 +449,7 @@ func (s *ApiKeyService) GetAvailableGroups(ctx context.Context, userID int64) ([
 	}
 
 	// 过滤出用户有权限的分组
-	availableGroups := make([]Group, 0)
+	availableGroups := make([]Group, 0, len(allGroups))
 	for _, group := range allGroups {
 		if s.canUserBindGroupInternal(user, &group, subscribedGroupIDs) {
 			availableGroups = append(availableGroups, group)

@@ -1943,7 +1943,7 @@ func (s *GatewayService) GetAvailableModels(ctx context.Context, groupID *int64,
 
 	// Filter by platform if specified
 	if platform != "" {
-		filtered := make([]Account, 0)
+		filtered := make([]Account, 0, len(accounts))
 		for _, acc := range accounts {
 			if acc.Platform == platform {
 				filtered = append(filtered, acc)

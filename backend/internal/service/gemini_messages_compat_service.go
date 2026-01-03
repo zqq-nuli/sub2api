@@ -1480,7 +1480,8 @@ func collectGeminiSSE(body io.Reader, isOAuth bool) (map[string]any, *ClaudeUsag
 							parsed = inner
 						}
 					} else {
-						_ = json.Unmarshal([]byte(payload), &parsed)
+						// 尝试解析 JSON 以提取用量信息，失败时安全忽略（流式数据可能不完整）
+						_ = json.Unmarshal([]byte(payload), &parsed) //nolint:errcheck
 					}
 					if parsed != nil {
 						last = parsed
@@ -1626,7 +1627,8 @@ func (s *GeminiMessagesCompatService) handleNativeNonStreamingResponse(c *gin.Co
 			respBody, _ = json.Marshal(parsed)
 		}
 	} else {
-		_ = json.Unmarshal(respBody, &parsed)
+		// 尝试解析 JSON 以提取用量信息，失败时安全忽略
+		_ = json.Unmarshal(respBody, &parsed) //nolint:errcheck
 	}
 
 	contentType := resp.Header.Get("Content-Type")
@@ -1688,7 +1690,8 @@ func (s *GeminiMessagesCompatService) handleNativeStreamingResponse(c *gin.Conte
 							}
 						}
 					} else {
-						_ = json.Unmarshal([]byte(payload), &parsed)
+						// 尝试解析 JSON 以提取用量信息，失败时安全忽略（流式数据可能不完整）
+						_ = json.Unmarshal([]byte(payload), &parsed) //nolint:errcheck
 					}
 
 					if parsed != nil {

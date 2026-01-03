@@ -27,6 +27,18 @@ func NewSettingHandler(settingService *service.SettingService, emailService *ser
 	}
 }
 
+// maskSensitiveString 对敏感字符串进行掩码处理
+// 显示前4个字符和后4个字符，中间用 * 替代
+func maskSensitiveString(s string) string {
+	if s == "" {
+		return ""
+	}
+	if len(s) <= 8 {
+		return "********"
+	}
+	return s[:4] + "********" + s[len(s)-4:]
+}
+
 // GetSettings 获取所有系统设置
 // GET /api/v1/admin/settings
 func (h *SettingHandler) GetSettings(c *gin.Context) {
@@ -36,19 +48,20 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		return
 	}
 
+	// 敏感字段进行掩码处理，避免在 API 响应中泄露
 	response.Success(c, dto.SystemSettings{
 		RegistrationEnabled: settings.RegistrationEnabled,
 		EmailVerifyEnabled:  settings.EmailVerifyEnabled,
 		SmtpHost:            settings.SmtpHost,
 		SmtpPort:            settings.SmtpPort,
 		SmtpUsername:        settings.SmtpUsername,
-		SmtpPassword:        settings.SmtpPassword,
+		SmtpPassword:        maskSensitiveString(settings.SmtpPassword), // 掩码
 		SmtpFrom:            settings.SmtpFrom,
 		SmtpFromName:        settings.SmtpFromName,
 		SmtpUseTLS:          settings.SmtpUseTLS,
 		TurnstileEnabled:    settings.TurnstileEnabled,
 		TurnstileSiteKey:    settings.TurnstileSiteKey,
-		TurnstileSecretKey:  settings.TurnstileSecretKey,
+		TurnstileSecretKey:  maskSensitiveString(settings.TurnstileSecretKey), // 掩码
 		SiteName:            settings.SiteName,
 		SiteLogo:            settings.SiteLogo,
 		SiteSubtitle:        settings.SiteSubtitle,
@@ -62,7 +75,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		PasswordLoginEnabled: settings.PasswordLoginEnabled,
 		SSOIssuerURL:         settings.SSOIssuerURL,
 		SSOClientID:          settings.SSOClientID,
-		SSOClientSecret:      settings.SSOClientSecret,
+		SSOClientSecret:      maskSensitiveString(settings.SSOClientSecret), // 掩码
 		SSORedirectURI:       settings.SSORedirectURI,
 		SSOAllowedDomains:    settings.SSOAllowedDomains,
 		SSOAutoCreateUser:    settings.SSOAutoCreateUser,
@@ -70,7 +83,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		EpayEnabled:     settings.EpayEnabled,
 		EpayApiURL:      settings.EpayApiURL,
 		EpayMerchantID:  settings.EpayMerchantID,
-		EpayMerchantKey: settings.EpayMerchantKey,
+		EpayMerchantKey: maskSensitiveString(settings.EpayMerchantKey), // 掩码
 		EpayNotifyURL:   settings.EpayNotifyURL,
 		EpayReturnURL:   settings.EpayReturnURL,
 		// 支付渠道
@@ -241,13 +254,13 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		SmtpHost:            updatedSettings.SmtpHost,
 		SmtpPort:            updatedSettings.SmtpPort,
 		SmtpUsername:        updatedSettings.SmtpUsername,
-		SmtpPassword:        updatedSettings.SmtpPassword,
+		SmtpPassword:        maskSensitiveString(updatedSettings.SmtpPassword), // 掩码
 		SmtpFrom:            updatedSettings.SmtpFrom,
 		SmtpFromName:        updatedSettings.SmtpFromName,
 		SmtpUseTLS:          updatedSettings.SmtpUseTLS,
 		TurnstileEnabled:    updatedSettings.TurnstileEnabled,
 		TurnstileSiteKey:    updatedSettings.TurnstileSiteKey,
-		TurnstileSecretKey:  updatedSettings.TurnstileSecretKey,
+		TurnstileSecretKey:  maskSensitiveString(updatedSettings.TurnstileSecretKey), // 掩码
 		SiteName:            updatedSettings.SiteName,
 		SiteLogo:            updatedSettings.SiteLogo,
 		SiteSubtitle:        updatedSettings.SiteSubtitle,
@@ -261,7 +274,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		PasswordLoginEnabled: updatedSettings.PasswordLoginEnabled,
 		SSOIssuerURL:         updatedSettings.SSOIssuerURL,
 		SSOClientID:          updatedSettings.SSOClientID,
-		SSOClientSecret:      updatedSettings.SSOClientSecret,
+		SSOClientSecret:      maskSensitiveString(updatedSettings.SSOClientSecret), // 掩码
 		SSORedirectURI:       updatedSettings.SSORedirectURI,
 		SSOAllowedDomains:    updatedSettings.SSOAllowedDomains,
 		SSOAutoCreateUser:    updatedSettings.SSOAutoCreateUser,
@@ -269,7 +282,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		EpayEnabled:     updatedSettings.EpayEnabled,
 		EpayApiURL:      updatedSettings.EpayApiURL,
 		EpayMerchantID:  updatedSettings.EpayMerchantID,
-		EpayMerchantKey: updatedSettings.EpayMerchantKey,
+		EpayMerchantKey: maskSensitiveString(updatedSettings.EpayMerchantKey), // 掩码
 		EpayNotifyURL:   updatedSettings.EpayNotifyURL,
 		EpayReturnURL:   updatedSettings.EpayReturnURL,
 		// 支付渠道

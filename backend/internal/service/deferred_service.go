@@ -43,7 +43,10 @@ func (s *DeferredService) ScheduleLastUsedUpdate(accountID int64) {
 }
 
 func (s *DeferredService) flushLastUsed() {
+	// 先收集所有需要更新的条目
 	updates := make(map[int64]time.Time)
+	keysToDelete := make([]any, 0, 64) // 预分配合理容量
+
 	s.lastUsedUpdates.Range(func(key, value any) bool {
 		id, ok := key.(int64)
 		if !ok {
@@ -54,9 +57,14 @@ func (s *DeferredService) flushLastUsed() {
 			return true
 		}
 		updates[id] = ts
-		s.lastUsedUpdates.Delete(key)
+		keysToDelete = append(keysToDelete, key)
 		return true
 	})
+
+	// 遍历完成后再删除，避免在 Range 期间修改 map
+	for _, key := range keysToDelete {
+		s.lastUsedUpdates.Delete(key)
+	}
 
 	if len(updates) == 0 {
 		return
@@ -67,6 +75,7 @@ func (s *DeferredService) flushLastUsed() {
 
 	if err := s.accountRepo.BatchUpdateLastUsed(ctx, updates); err != nil {
 		log.Printf("[DeferredService] BatchUpdateLastUsed failed (%d accounts): %v", len(updates), err)
+		// 失败时将条目放回
 		for id, ts := range updates {
 			s.lastUsedUpdates.Store(id, ts)
 		}

@@ -395,12 +395,33 @@ func setDefaults() {
 }
 
 func (c *Config) Validate() error {
+	// JWT 密钥验证
 	if c.JWT.Secret == "" {
 		return fmt.Errorf("jwt.secret is required")
 	}
-	if c.JWT.Secret == "change-me-in-production" && c.Server.Mode == "release" {
-		return fmt.Errorf("jwt.secret must be changed in production")
+
+	// 检查是否使用默认/弱密钥
+	weakSecrets := []string{
+		"change-me-in-production",
+		"change-this-to-a-secure-random-string",
+		"secret",
+		"jwt-secret",
+		"your-secret-key",
 	}
+	for _, weak := range weakSecrets {
+		if c.JWT.Secret == weak {
+			if c.Server.Mode == "release" {
+				return fmt.Errorf("jwt.secret must be changed from default value in production")
+			}
+			break
+		}
+	}
+
+	// 生产模式下强制密钥长度检查
+	if c.Server.Mode == "release" && len(c.JWT.Secret) < 32 {
+		return fmt.Errorf("jwt.secret must be at least 32 characters in production mode")
+	}
+
 	if c.Database.MaxOpenConns <= 0 {
 		return fmt.Errorf("database.max_open_conns must be positive")
 	}

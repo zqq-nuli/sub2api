@@ -41,19 +41,19 @@ func apiKeyAuthWithSubscription(apiKeyService *service.ApiKeyService, subscripti
 			apiKeyString = c.GetHeader("x-goog-api-key")
 		}
 
-		// 如果header中没有，尝试从query参数中提取（Google API key风格）
-		if apiKeyString == "" {
-			apiKeyString = c.Query("key")
+		// 安全考虑：不再支持通过 query 参数传递 API 密钥
+		// Query 参数会被记录在服务器日志、浏览器历史和代理日志中，存在泄露风险
+		// 如果在 query 参数中发现 API 密钥，记录警告但不使用
+		if queryKey := c.Query("key"); queryKey != "" {
+			log.Printf("Warning: API key detected in query parameter 'key', this is deprecated and ignored for security reasons")
 		}
-
-		// 兼容常见别名
-		if apiKeyString == "" {
-			apiKeyString = c.Query("api_key")
+		if queryKey := c.Query("api_key"); queryKey != "" {
+			log.Printf("Warning: API key detected in query parameter 'api_key', this is deprecated and ignored for security reasons")
 		}
 
 		// 如果所有header都没有API key
 		if apiKeyString == "" {
-			AbortWithError(c, 401, "API_KEY_REQUIRED", "API key is required in Authorization header (Bearer scheme), x-api-key header, x-goog-api-key header, or key/api_key query parameter")
+			AbortWithError(c, 401, "API_KEY_REQUIRED", "API key is required in Authorization header (Bearer scheme), x-api-key header, or x-goog-api-key header")
 			return
 		}
 

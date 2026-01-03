@@ -525,7 +525,7 @@ func (s *SettingService) GetPaymentChannels(ctx context.Context) ([]PaymentChann
 	}
 
 	// 过滤出启用的渠道并排序
-	enabledChannels := make([]PaymentChannel, 0)
+	enabledChannels := make([]PaymentChannel, 0, len(channels))
 	for _, ch := range channels {
 		if ch.Enabled {
 			enabledChannels = append(enabledChannels, ch)

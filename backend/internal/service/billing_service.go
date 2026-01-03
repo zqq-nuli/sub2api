@@ -243,7 +243,7 @@ func (s *BillingService) CalculateCostWithConfig(model string, tokens UsageToken
 
 // ListSupportedModels 列出所有支持的模型（现在总是返回true，因为有模糊匹配）
 func (s *BillingService) ListSupportedModels() []string {
-	models := make([]string, 0)
+	models := make([]string, 0, len(s.fallbackPrices))
 	// 返回回退价格支持的模型系列
 	for model := range s.fallbackPrices {
 		models = append(models, model)

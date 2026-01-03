@@ -25,6 +25,7 @@ func SetupRouter(
 	// 应用中间件
 	r.Use(middleware2.Logger())
 	r.Use(middleware2.CORS())
+	r.Use(middleware2.SecurityHeaders()) // 安全响应头
 
 	// Serve embedded frontend if available
 	if web.HasEmbeddedFrontend() {
