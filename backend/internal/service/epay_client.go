@@ -106,15 +106,15 @@ func (c *EpayClient) GenerateSign(params map[string]string) string {
 	var sb strings.Builder
 	for i, k := range keys {
 		if i > 0 {
-			sb.WriteString("&")
+			_, _ = sb.WriteString("&")
 		}
-		sb.WriteString(k)
-		sb.WriteString("=")
-		sb.WriteString(params[k])
+		_, _ = sb.WriteString(k)
+		_, _ = sb.WriteString("=")
+		_, _ = sb.WriteString(params[k])
 	}
 
 	// 4. 追加密钥
-	sb.WriteString(c.merchantKey)
+	_, _ = sb.WriteString(c.merchantKey)
 
 	// 5. MD5加密
 	hash := md5.Sum([]byte(sb.String()))

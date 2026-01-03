@@ -6,24 +6,29 @@ import (
 	"fmt"
 	"log"
 	"time"
-
-	"github.com/redis/go-redis/v9"
 )
+
+// RechargeProductCache 充值套餐缓存接口
+type RechargeProductCache interface {
+	GetActiveProducts(ctx context.Context) (string, error)
+	SetActiveProducts(ctx context.Context, data string, ttl time.Duration) error
+	InvalidateActiveProducts(ctx context.Context) error
+}
 
 // RechargeProductService 充值套餐服务
 type RechargeProductService struct {
-	productRepo RechargeProductRepository
-	redisClient *redis.Client
+	productRepo  RechargeProductRepository
+	productCache RechargeProductCache
 }
 
 // NewRechargeProductService 创建充值套餐服务
 func NewRechargeProductService(
 	productRepo RechargeProductRepository,
-	redisClient *redis.Client,
+	productCache RechargeProductCache,
 ) *RechargeProductService {
 	return &RechargeProductService{
-		productRepo: productRepo,
-		redisClient: redisClient,
+		productRepo:  productRepo,
+		productCache: productCache,
 	}
 }
 
@@ -202,13 +207,13 @@ func (s *RechargeProductService) ListAllProducts(ctx context.Context) ([]*Rechar
 	return products, nil
 }
 
-// getProductsFromCache 从Redis缓存获取套餐列表
+// getProductsFromCache 从缓存获取套餐列表
 func (s *RechargeProductService) getProductsFromCache(ctx context.Context) ([]*RechargeProduct, error) {
-	if s.redisClient == nil {
+	if s.productCache == nil {
 		return nil, fmt.Errorf("cache miss")
 	}
 
-	data, err := s.redisClient.Get(ctx, cacheKeyActiveProducts).Result()
+	data, err := s.productCache.GetActiveProducts(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -220,9 +225,9 @@ func (s *RechargeProductService) getProductsFromCache(ctx context.Context) ([]*R
 	return products, nil
 }
 
-// setProductsToCache 将套餐列表存入Redis缓存
+// setProductsToCache 将套餐列表存入缓存
 func (s *RechargeProductService) setProductsToCache(ctx context.Context, products []*RechargeProduct) error {
-	if s.redisClient == nil {
+	if s.productCache == nil {
 		return nil
 	}
 
@@ -231,19 +236,19 @@ func (s *RechargeProductService) setProductsToCache(ctx context.Context, product
 		return err
 	}
 
-	return s.redisClient.Set(ctx, cacheKeyActiveProducts, string(data), productCacheTTL).Err()
+	return s.productCache.SetActiveProducts(ctx, string(data), productCacheTTL)
 }
 
 // invalidateCache 失效缓存
 func (s *RechargeProductService) invalidateCache(ctx context.Context) {
-	if s.redisClient == nil {
+	if s.productCache == nil {
 		return
 	}
 
 	go func() {
 		cacheCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		if err := s.redisClient.Del(cacheCtx, cacheKeyActiveProducts).Err(); err != nil {
+		if err := s.productCache.InvalidateActiveProducts(cacheCtx); err != nil {
 			log.Printf("[RechargeProduct] Failed to invalidate cache: %v", err)
 		}
 	}()

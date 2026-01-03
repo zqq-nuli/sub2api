@@ -57,6 +57,7 @@ func TestAPIContracts(t *testing.T) {
 					"concurrency": 5,
 					"status": "active",
 					"allowed_groups": null,
+					"avatar": "",
 					"created_at": "2025-01-02T03:04:05Z",
 					"updated_at": "2025-01-02T03:04:05Z",
 					"run_mode": "standard"
@@ -291,6 +292,7 @@ func TestAPIContracts(t *testing.T) {
 				"data": {
 					"registration_enabled": true,
 					"email_verify_enabled": false,
+					"password_login_enabled": true,
 					"smtp_host": "smtp.example.com",
 					"smtp_port": 587,
 					"smtp_username": "user",
@@ -308,7 +310,23 @@ func TestAPIContracts(t *testing.T) {
 					"contact_info": "support",
 					"doc_url": "https://docs.example.com",
 					"default_concurrency": 5,
-					"default_balance": 1.25
+					"default_balance": 1.25,
+					"sso_enabled": false,
+					"sso_issuer_url": "",
+					"sso_client_id": "",
+					"sso_redirect_uri": "",
+					"sso_auto_create_user": true,
+					"sso_allowed_domains": null,
+					"epay_enabled": false,
+					"epay_api_url": "",
+					"epay_merchant_id": "",
+					"epay_notify_url": "",
+					"epay_return_url": "",
+					"payment_channels": [
+						{"key": "alipay", "display_name": "支付宝", "icon": "alipay", "enabled": true, "epay_type": "epay", "sort_order": 1},
+						{"key": "wxpay", "display_name": "微信支付", "icon": "wechat", "enabled": true, "epay_type": "epay", "sort_order": 2},
+						{"key": "epusdt", "display_name": "USDT", "icon": "usdt", "enabled": true, "epay_type": "epay", "sort_order": 3}
+					]
 				}
 			}`,
 		},
@@ -378,7 +396,7 @@ func newContractDeps(t *testing.T) *contractDeps {
 	usageService := service.NewUsageService(usageRepo, userRepo)
 
 	settingRepo := newStubSettingRepo()
-	settingService := service.NewSettingService(settingRepo, cfg)
+	settingService := service.NewSettingService(settingRepo, cfg, &stubCryptoService{})
 
 	authHandler := handler.NewAuthHandler(cfg, nil, userService)
 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
@@ -1148,6 +1166,17 @@ func paginationResult(total int64, params pagination.PaginationParams) *paginati
 	}
 }
 
+// stubCryptoService is a no-op implementation for testing
+type stubCryptoService struct{}
+
+func (s *stubCryptoService) Encrypt(plaintext string) (string, error) {
+	return plaintext, nil
+}
+
+func (s *stubCryptoService) Decrypt(ciphertext string) (string, error) {
+	return ciphertext, nil
+}
+
 // Ensure compile-time interface compliance.
 var (
 	_ service.UserRepository             = (*stubUserRepo)(nil)
@@ -1157,4 +1186,5 @@ var (
 	_ service.UserSubscriptionRepository = (*stubUserSubscriptionRepo)(nil)
 	_ service.UsageLogRepository         = (*stubUsageLogRepo)(nil)
 	_ service.SettingRepository          = (*stubSettingRepo)(nil)
+	_ service.CryptoService              = (*stubCryptoService)(nil)
 )

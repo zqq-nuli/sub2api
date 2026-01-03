@@ -263,7 +263,7 @@ func (s *OIDCSSOService) ExchangeCodeAndCreateUser(ctx context.Context, code, st
 	minTrustLevelStr, _ := s.settingService.GetSetting(ctx, SettingKeySSOMinTrustLevel)
 	minTrustLevel := 0
 	if minTrustLevelStr != "" {
-		fmt.Sscanf(minTrustLevelStr, "%d", &minTrustLevel)
+		_, _ = fmt.Sscanf(minTrustLevelStr, "%d", &minTrustLevel)
 	}
 	if claims.TrustLevel < minTrustLevel {
 		return "", nil, false, infraerrors.Forbidden("TRUST_LEVEL_TOO_LOW",

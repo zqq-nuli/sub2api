@@ -6,10 +6,10 @@ import "time"
 type RechargeProductDTO struct {
 	ID            int64     `json:"id"`
 	Name          string    `json:"name"`
-	Amount        float64   `json:"amount"`         // 人民币金额
-	Balance       float64   `json:"balance"`        // 基础美元余额
-	BonusBalance  float64   `json:"bonus_balance"`  // 赠送美元余额
-	TotalBalance  float64   `json:"total_balance"`  // 总到账余额
+	Amount        float64   `json:"amount"`        // 人民币金额
+	Balance       float64   `json:"balance"`       // 基础美元余额
+	BonusBalance  float64   `json:"bonus_balance"` // 赠送美元余额
+	TotalBalance  float64   `json:"total_balance"` // 总到账余额
 	Description   string    `json:"description"`
 	SortOrder     int       `json:"sort_order"`
 	IsHot         bool      `json:"is_hot"`

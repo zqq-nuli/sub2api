@@ -69,14 +69,14 @@ type IDTokenClaims struct {
 	Iat               int64    `json:"iat"`
 
 	// Forum-specific fields
-	ID               string                 `json:"id,omitempty"`               // User unique ID
-	Username         string                 `json:"username,omitempty"`         // Forum username
-	AvatarTemplate   string                 `json:"avatar_template,omitempty"`  // Avatar URL template
-	Active           bool                   `json:"active,omitempty"`           // Account active status
-	TrustLevel       int                    `json:"trust_level,omitempty"`      // Trust level (0-4)
-	Silenced         bool                   `json:"silenced,omitempty"`         // Silenced status
-	ExternalIDs      map[string]interface{} `json:"external_ids,omitempty"`     // External ID associations
-	APIKey           string                 `json:"api_key,omitempty"`          // API access key
+	ID             string                 `json:"id,omitempty"`              // User unique ID
+	Username       string                 `json:"username,omitempty"`        // Forum username
+	AvatarTemplate string                 `json:"avatar_template,omitempty"` // Avatar URL template
+	Active         bool                   `json:"active,omitempty"`          // Account active status
+	TrustLevel     int                    `json:"trust_level,omitempty"`     // Trust level (0-4)
+	Silenced       bool                   `json:"silenced,omitempty"`        // Silenced status
+	ExternalIDs    map[string]interface{} `json:"external_ids,omitempty"`    // External ID associations
+	APIKey         string                 `json:"api_key,omitempty"`         // API access key
 }
 
 // AudClaim handles aud field which can be string or []string
@@ -122,7 +122,7 @@ func (c *OIDCClient) DiscoverOIDCConfig(ctx context.Context, issuerURL string) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover OIDC configuration: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -158,7 +158,7 @@ func (c *OIDCClient) ExchangeCode(ctx context.Context, config *OIDCConfig, provi
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange code: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 
@@ -193,7 +193,7 @@ func (c *OIDCClient) RefreshToken(ctx context.Context, config *OIDCConfig, provi
 	if err != nil {
 		return nil, fmt.Errorf("failed to refresh token: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 

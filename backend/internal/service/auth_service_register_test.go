@@ -71,6 +71,17 @@ func (s *emailCacheStub) DeleteVerificationCode(ctx context.Context, email strin
 	return nil
 }
 
+// cryptoServiceStub is a no-op crypto service for testing
+type cryptoServiceStub struct{}
+
+func (s *cryptoServiceStub) Encrypt(plaintext string) (string, error) {
+	return plaintext, nil
+}
+
+func (s *cryptoServiceStub) Decrypt(ciphertext string) (string, error) {
+	return ciphertext, nil
+}
+
 func newAuthService(repo *userRepoStub, settings map[string]string, emailCache EmailCache) *AuthService {
 	cfg := &config.Config{
 		JWT: config.JWTConfig{
@@ -85,7 +96,7 @@ func newAuthService(repo *userRepoStub, settings map[string]string, emailCache E
 
 	var settingService *SettingService
 	if settings != nil {
-		settingService = NewSettingService(&settingRepoStub{values: settings}, cfg)
+		settingService = NewSettingService(&settingRepoStub{values: settings}, cfg, &cryptoServiceStub{})
 	}
 
 	var emailService *EmailService

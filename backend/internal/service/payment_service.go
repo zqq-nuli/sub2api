@@ -7,9 +7,14 @@ import (
 	"log"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/shopspring/decimal"
 )
+
+// PaymentCache 支付服务缓存接口
+type PaymentCache interface {
+	AcquirePaymentLock(ctx context.Context, orderNo string, ttl time.Duration) (bool, error)
+	ReleasePaymentLock(ctx context.Context, orderNo string) error
+}
 
 // PaymentService 支付服务
 type PaymentService struct {
@@ -18,7 +23,7 @@ type PaymentService struct {
 	productRepo         RechargeProductRepository
 	settingService      *SettingService
 	billingCacheService *BillingCacheService
-	redisClient         *redis.Client
+	paymentCache        PaymentCache
 }
 
 // NewPaymentService 创建支付服务
@@ -28,7 +33,7 @@ func NewPaymentService(
 	productRepo RechargeProductRepository,
 	settingService *SettingService,
 	billingCacheService *BillingCacheService,
-	redisClient *redis.Client,
+	paymentCache PaymentCache,
 ) *PaymentService {
 	return &PaymentService{
 		orderRepo:           orderRepo,
@@ -36,7 +41,7 @@ func NewPaymentService(
 		productRepo:         productRepo,
 		settingService:      settingService,
 		billingCacheService: billingCacheService,
-		redisClient:         redisClient,
+		paymentCache:        paymentCache,
 	}
 }
 
@@ -153,8 +158,7 @@ func (s *PaymentService) HandlePaymentCallback(ctx context.Context, params map[s
 	}
 
 	// 3. 获取分布式锁（防止并发回调）
-	lockKey := "payment:callback:lock:" + orderNo
-	locked, err := s.redisClient.SetNX(ctx, lockKey, "1", 5*time.Minute).Result()
+	locked, err := s.paymentCache.AcquirePaymentLock(ctx, orderNo, 5*time.Minute)
 	if err != nil {
 		return fmt.Errorf("acquire lock: %w", err)
 	}
@@ -163,7 +167,7 @@ func (s *PaymentService) HandlePaymentCallback(ctx context.Context, params map[s
 		return ErrOrderLocked
 	}
 	defer func() {
-		_ = s.redisClient.Del(ctx, lockKey).Err()
+		_ = s.paymentCache.ReleasePaymentLock(ctx, orderNo)
 	}()
 
 	// 4. 查询订单
@@ -362,8 +366,7 @@ func (s *PaymentService) SyncOrderFromUpstream(ctx context.Context, orderNo stri
 // completeOrderFromUpstream 根据上游查询结果完成订单
 func (s *PaymentService) completeOrderFromUpstream(ctx context.Context, order *Order, upstreamResult *EpayOrderQueryResponse) (*Order, error) {
 	// 获取分布式锁
-	lockKey := "payment:sync:lock:" + order.OrderNo
-	locked, err := s.redisClient.SetNX(ctx, lockKey, "1", 5*time.Minute).Result()
+	locked, err := s.paymentCache.AcquirePaymentLock(ctx, order.OrderNo, 5*time.Minute)
 	if err != nil {
 		return nil, fmt.Errorf("acquire lock: %w", err)
 	}
@@ -371,7 +374,7 @@ func (s *PaymentService) completeOrderFromUpstream(ctx context.Context, order *O
 		return nil, ErrOrderLocked
 	}
 	defer func() {
-		_ = s.redisClient.Del(ctx, lockKey).Err()
+		_ = s.paymentCache.ReleasePaymentLock(ctx, order.OrderNo)
 	}()
 
 	// 重新获取订单（确保最新状态）
