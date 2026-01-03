@@ -140,6 +140,7 @@ var ProviderSet = wire.NewSet(
 	NewUserAttributeService,
 	NewUsageCache,
 	ProvideOIDCSSOService,
+	NewAuthRateLimitService,
 
 	// Payment and order services
 	NewPaymentService,

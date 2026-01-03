@@ -12,13 +12,14 @@ func RegisterAuthRoutes(
 	v1 *gin.RouterGroup,
 	h *handler.Handlers,
 	jwtAuth middleware.JWTAuthMiddleware,
+	rateLimitMw *middleware.AuthRateLimitMiddleware,
 ) {
 	// 公开接口
 	auth := v1.Group("/auth")
 	{
-		auth.POST("/register", h.Auth.Register)
-		auth.POST("/login", h.Auth.Login)
-		auth.POST("/send-verify-code", h.Auth.SendVerifyCode)
+		auth.POST("/register", rateLimitMw.RegisterRateLimit(), h.Auth.Register)
+		auth.POST("/login", rateLimitMw.LoginRateLimit(), h.Auth.Login)
+		auth.POST("/send-verify-code", rateLimitMw.VerifyCodeRateLimit(), h.Auth.SendVerifyCode)
 
 		// SSO登录路由
 		auth.GET("/sso/config", h.SSO.GetSSOConfig)

@@ -87,9 +87,19 @@ type AccountLoadInfo struct {
 // AcquireAccountSlot attempts to acquire a concurrency slot for an account.
 // If the account is at max concurrency, it waits until a slot is available or timeout.
 // Returns a release function that MUST be called when the request completes.
+// Note: Uses fail-open strategy when Redis is unavailable to prevent service disruption.
 func (s *ConcurrencyService) AcquireAccountSlot(ctx context.Context, accountID int64, maxConcurrency int) (*AcquireResult, error) {
 	// If maxConcurrency is 0 or negative, no limit
 	if maxConcurrency <= 0 {
+		return &AcquireResult{
+			Acquired:    true,
+			ReleaseFunc: func() {}, // no-op
+		}, nil
+	}
+
+	// If cache is nil, allow request (fail-open)
+	if s.cache == nil {
+		log.Printf("Warning: concurrency cache unavailable, allowing request (fail-open) for account %d", accountID)
 		return &AcquireResult{
 			Acquired:    true,
 			ReleaseFunc: func() {}, // no-op
@@ -101,7 +111,12 @@ func (s *ConcurrencyService) AcquireAccountSlot(ctx context.Context, accountID i
 
 	acquired, err := s.cache.AcquireAccountSlot(ctx, accountID, maxConcurrency, requestID)
 	if err != nil {
-		return nil, err
+		// Redis error: fail-open with warning to prevent service disruption
+		log.Printf("Warning: acquire account slot failed for account %d, allowing request (fail-open): %v", accountID, err)
+		return &AcquireResult{
+			Acquired:    true,
+			ReleaseFunc: func() {}, // no-op since we didn't actually acquire
+		}, nil
 	}
 
 	if acquired {
@@ -126,9 +141,19 @@ func (s *ConcurrencyService) AcquireAccountSlot(ctx context.Context, accountID i
 // AcquireUserSlot attempts to acquire a concurrency slot for a user.
 // If the user is at max concurrency, it waits until a slot is available or timeout.
 // Returns a release function that MUST be called when the request completes.
+// Note: Uses fail-open strategy when Redis is unavailable to prevent service disruption.
 func (s *ConcurrencyService) AcquireUserSlot(ctx context.Context, userID int64, maxConcurrency int) (*AcquireResult, error) {
 	// If maxConcurrency is 0 or negative, no limit
 	if maxConcurrency <= 0 {
+		return &AcquireResult{
+			Acquired:    true,
+			ReleaseFunc: func() {}, // no-op
+		}, nil
+	}
+
+	// If cache is nil, allow request (fail-open)
+	if s.cache == nil {
+		log.Printf("Warning: concurrency cache unavailable, allowing request (fail-open) for user %d", userID)
 		return &AcquireResult{
 			Acquired:    true,
 			ReleaseFunc: func() {}, // no-op
@@ -140,7 +165,12 @@ func (s *ConcurrencyService) AcquireUserSlot(ctx context.Context, userID int64, 
 
 	acquired, err := s.cache.AcquireUserSlot(ctx, userID, maxConcurrency, requestID)
 	if err != nil {
-		return nil, err
+		// Redis error: fail-open with warning to prevent service disruption
+		log.Printf("Warning: acquire user slot failed for user %d, allowing request (fail-open): %v", userID, err)
+		return &AcquireResult{
+			Acquired:    true,
+			ReleaseFunc: func() {}, // no-op since we didn't actually acquire
+		}, nil
 	}
 
 	if acquired {

@@ -14,7 +14,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/antigravity"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
-	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
+	mw "github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -53,13 +53,13 @@ func NewGatewayHandler(
 // POST /v1/messages
 func (h *GatewayHandler) Messages(c *gin.Context) {
 	// 从context获取apiKey和user（ApiKeyAuth中间件已设置）
-	apiKey, ok := middleware2.GetApiKeyFromContext(c)
+	apiKey, ok := mw.GetApiKeyFromContext(c)
 	if !ok {
 		h.errorResponse(c, http.StatusUnauthorized, "authentication_error", "Invalid API key")
 		return
 	}
 
-	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	subject, ok := mw.GetAuthSubjectFromContext(c)
 	if !ok {
 		h.errorResponse(c, http.StatusInternalServerError, "api_error", "User context not found")
 		return
@@ -99,7 +99,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 	streamStarted := false
 
 	// 获取订阅信息（可能为nil）- 提前获取用于后续检查
-	subscription, _ := middleware2.GetSubscriptionFromContext(c)
+	subscription, _ := mw.GetSubscriptionFromContext(c)
 
 	// 0. 检查wait队列是否已满
 	maxWait := service.CalculateMaxWait(subject.Concurrency)
@@ -137,7 +137,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 
 	// 获取平台：优先使用强制平台（/antigravity 路由，中间件已设置 request.Context），否则使用分组平台
 	platform := ""
-	if forcePlatform, ok := middleware2.GetForcePlatformFromContext(c); ok {
+	if forcePlatform, ok := mw.GetForcePlatformFromContext(c); ok {
 		platform = forcePlatform
 	} else if apiKey.Group != nil {
 		platform = apiKey.Group.Platform
@@ -148,7 +148,6 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 	}
 
 	if platform == service.PlatformGemini {
-		const maxAccountSwitches = 3
 		switchCount := 0
 		failedAccountIDs := make(map[int64]struct{})
 		lastFailoverStatus := 0
@@ -238,14 +237,14 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 				var failoverErr *service.UpstreamFailoverError
 				if errors.As(err, &failoverErr) {
 					failedAccountIDs[account.ID] = struct{}{}
-					if switchCount >= maxAccountSwitches {
+					if switchCount >= DefaultMaxAccountSwitches {
 						lastFailoverStatus = failoverErr.StatusCode
 						h.handleFailoverExhausted(c, lastFailoverStatus, streamStarted)
 						return
 					}
 					lastFailoverStatus = failoverErr.StatusCode
 					switchCount++
-					log.Printf("Account %d: upstream error %d, switching account %d/%d", account.ID, failoverErr.StatusCode, switchCount, maxAccountSwitches)
+					log.Printf("Account %d: upstream error %d, switching account %d/%d", account.ID, failoverErr.StatusCode, switchCount, DefaultMaxAccountSwitches)
 					continue
 				}
 				// 错误响应已在Forward中处理，这里只记录日志
@@ -254,24 +253,34 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 			}
 
 			// 异步记录使用量（subscription已在函数开头获取）
+			// 添加重试机制以确保用量记录的可靠性
 			go func(result *service.ForwardResult, usedAccount *service.Account) {
-				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-				defer cancel()
-				if err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
-					Result:       result,
-					ApiKey:       apiKey,
-					User:         apiKey.User,
-					Account:      usedAccount,
-					Subscription: subscription,
-				}); err != nil {
-					log.Printf("Record usage failed: %v", err)
+				const maxRetries = 3
+				for attempt := 0; attempt < maxRetries; attempt++ {
+					ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+					err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
+						Result:       result,
+						ApiKey:       apiKey,
+						User:         apiKey.User,
+						Account:      usedAccount,
+						Subscription: subscription,
+					})
+					cancel()
+					if err == nil {
+						return
+					}
+					log.Printf("Record usage failed (attempt %d/%d): %v", attempt+1, maxRetries, err)
+					if attempt < maxRetries-1 {
+						// 指数退避：1s, 2s
+						time.Sleep(time.Duration(1<<attempt) * time.Second)
+					}
 				}
+				log.Printf("ALERT: Record usage failed after all retries for account %d, request_id=%s", usedAccount.ID, result.RequestID)
 			}(result, account)
 			return
 		}
 	}
 
-	const maxAccountSwitches = 10
 	switchCount := 0
 	failedAccountIDs := make(map[int64]struct{})
 	lastFailoverStatus := 0
@@ -362,14 +371,14 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 			var failoverErr *service.UpstreamFailoverError
 			if errors.As(err, &failoverErr) {
 				failedAccountIDs[account.ID] = struct{}{}
-				if switchCount >= maxAccountSwitches {
+				if switchCount >= MaxAccountSwitchesHigh {
 					lastFailoverStatus = failoverErr.StatusCode
 					h.handleFailoverExhausted(c, lastFailoverStatus, streamStarted)
 					return
 				}
 				lastFailoverStatus = failoverErr.StatusCode
 				switchCount++
-				log.Printf("Account %d: upstream error %d, switching account %d/%d", account.ID, failoverErr.StatusCode, switchCount, maxAccountSwitches)
+				log.Printf("Account %d: upstream error %d, switching account %d/%d", account.ID, failoverErr.StatusCode, switchCount, MaxAccountSwitchesHigh)
 				continue
 			}
 			// 错误响应已在Forward中处理，这里只记录日志
@@ -378,18 +387,29 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 		}
 
 		// 异步记录使用量（subscription已在函数开头获取）
+		// 添加重试机制以确保用量记录的可靠性
 		go func(result *service.ForwardResult, usedAccount *service.Account) {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			if err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
-				Result:       result,
-				ApiKey:       apiKey,
-				User:         apiKey.User,
-				Account:      usedAccount,
-				Subscription: subscription,
-			}); err != nil {
-				log.Printf("Record usage failed: %v", err)
+			const maxRetries = 3
+			for attempt := 0; attempt < maxRetries; attempt++ {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
+					Result:       result,
+					ApiKey:       apiKey,
+					User:         apiKey.User,
+					Account:      usedAccount,
+					Subscription: subscription,
+				})
+				cancel()
+				if err == nil {
+					return
+				}
+				log.Printf("Record usage failed (attempt %d/%d): %v", attempt+1, maxRetries, err)
+				if attempt < maxRetries-1 {
+					// 指数退避：1s, 2s
+					time.Sleep(time.Duration(1<<attempt) * time.Second)
+				}
 			}
+			log.Printf("ALERT: Record usage failed after all retries for account %d, request_id=%s", usedAccount.ID, result.RequestID)
 		}(result, account)
 		return
 	}
@@ -400,7 +420,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 // Returns models based on account configurations (model_mapping whitelist)
 // Falls back to default models if no whitelist is configured
 func (h *GatewayHandler) Models(c *gin.Context) {
-	apiKey, _ := middleware2.GetApiKeyFromContext(c)
+	apiKey, _ := mw.GetApiKeyFromContext(c)
 
 	var groupID *int64
 	var platform string
@@ -458,13 +478,13 @@ func (h *GatewayHandler) AntigravityModels(c *gin.Context) {
 // Usage handles getting account balance for CC Switch integration
 // GET /v1/usage
 func (h *GatewayHandler) Usage(c *gin.Context) {
-	apiKey, ok := middleware2.GetApiKeyFromContext(c)
+	apiKey, ok := mw.GetApiKeyFromContext(c)
 	if !ok {
 		h.errorResponse(c, http.StatusUnauthorized, "authentication_error", "Invalid API key")
 		return
 	}
 
-	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	subject, ok := mw.GetAuthSubjectFromContext(c)
 	if !ok {
 		h.errorResponse(c, http.StatusUnauthorized, "authentication_error", "Invalid API key")
 		return
@@ -472,7 +492,7 @@ func (h *GatewayHandler) Usage(c *gin.Context) {
 
 	// 订阅模式：返回订阅限额信息
 	if apiKey.Group != nil && apiKey.Group.IsSubscriptionType() {
-		subscription, ok := middleware2.GetSubscriptionFromContext(c)
+		subscription, ok := mw.GetSubscriptionFromContext(c)
 		if !ok {
 			h.errorResponse(c, http.StatusForbidden, "subscription_error", "No active subscription")
 			return
@@ -628,13 +648,13 @@ func (h *GatewayHandler) errorResponse(c *gin.Context, status int, errType, mess
 // 特点：校验订阅/余额，但不计算并发、不记录使用量
 func (h *GatewayHandler) CountTokens(c *gin.Context) {
 	// 从context获取apiKey和user（ApiKeyAuth中间件已设置）
-	apiKey, ok := middleware2.GetApiKeyFromContext(c)
+	apiKey, ok := mw.GetApiKeyFromContext(c)
 	if !ok {
 		h.errorResponse(c, http.StatusUnauthorized, "authentication_error", "Invalid API key")
 		return
 	}
 
-	_, ok = middleware2.GetAuthSubjectFromContext(c)
+	_, ok = mw.GetAuthSubjectFromContext(c)
 	if !ok {
 		h.errorResponse(c, http.StatusInternalServerError, "api_error", "User context not found")
 		return
@@ -669,7 +689,7 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 	}
 
 	// 获取订阅信息（可能为nil）
-	subscription, _ := middleware2.GetSubscriptionFromContext(c)
+	subscription, _ := mw.GetSubscriptionFromContext(c)
 
 	// 校验 billing eligibility（订阅/余额）
 	// 【注意】不计算并发，但需要校验订阅/余额

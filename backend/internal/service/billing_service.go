@@ -133,11 +133,50 @@ func (s *BillingService) initFallbackPricing() {
 		CacheReadPricePerToken:     0.03e-6, // $0.03 per MTok
 		SupportsCacheBreakdown:     false,
 	}
+
+	// Gemini 2.0 Flash
+	s.fallbackPrices["gemini-2.0-flash"] = &ModelPricing{
+		InputPricePerToken:         0.1e-6,   // $0.10 per MTok
+		OutputPricePerToken:        0.4e-6,   // $0.40 per MTok
+		CacheCreationPricePerToken: 0,        // No separate cache creation cost
+		CacheReadPricePerToken:     0.025e-6, // $0.025 per MTok
+		SupportsCacheBreakdown:     false,
+	}
+
+	// Gemini 1.5 Pro
+	s.fallbackPrices["gemini-1.5-pro"] = &ModelPricing{
+		InputPricePerToken:         3.5e-6,   // $3.50 per MTok
+		OutputPricePerToken:        10.5e-6,  // $10.50 per MTok
+		CacheCreationPricePerToken: 0,        // No separate cache creation cost
+		CacheReadPricePerToken:     0.875e-6, // $0.875 per MTok
+		SupportsCacheBreakdown:     false,
+	}
+
+	// Gemini 1.5 Flash
+	s.fallbackPrices["gemini-1.5-flash"] = &ModelPricing{
+		InputPricePerToken:         0.075e-6,   // $0.075 per MTok
+		OutputPricePerToken:        0.30e-6,    // $0.30 per MTok
+		CacheCreationPricePerToken: 0,          // No separate cache creation cost
+		CacheReadPricePerToken:     0.01875e-6, // $0.01875 per MTok
+		SupportsCacheBreakdown:     false,
+	}
 }
 
 // getFallbackPricing 根据模型系列获取回退价格
 func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 	modelLower := strings.ToLower(model)
+
+	// Gemini 模型匹配
+	if strings.Contains(modelLower, "gemini") {
+		if strings.Contains(modelLower, "2.0") || strings.Contains(modelLower, "2-0") {
+			return s.fallbackPrices["gemini-2.0-flash"]
+		}
+		if strings.Contains(modelLower, "1.5-pro") || strings.Contains(modelLower, "1.5 pro") {
+			return s.fallbackPrices["gemini-1.5-pro"]
+		}
+		// Default to flash for other 1.5 models
+		return s.fallbackPrices["gemini-1.5-flash"]
+	}
 
 	// 按模型系列匹配
 	if strings.Contains(modelLower, "opus") {

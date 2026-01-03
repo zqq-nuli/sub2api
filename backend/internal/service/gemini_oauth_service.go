@@ -26,6 +26,9 @@ const (
 	TierGoogleOneUnlimited = "GOOGLE_ONE_UNLIMITED"
 )
 
+// tierIDPattern is pre-compiled regex for validating tier IDs
+var tierIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_/-]+$`)
+
 const (
 	GB = 1024 * 1024 * 1024
 	TB = 1024 * GB
@@ -198,7 +201,7 @@ func validateTierID(tierID string) error {
 		return fmt.Errorf("tier_id exceeds maximum length of 64 characters")
 	}
 	// Allow alphanumeric, underscore, hyphen, and slash (for tier paths)
-	if !regexp.MustCompile(`^[a-zA-Z0-9_/-]+$`).MatchString(tierID) {
+	if !tierIDPattern.MatchString(tierID) {
 		return fmt.Errorf("tier_id contains invalid characters")
 	}
 	return nil

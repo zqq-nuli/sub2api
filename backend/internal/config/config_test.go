@@ -29,6 +29,8 @@ func TestNormalizeRunMode(t *testing.T) {
 
 func TestLoadDefaultSchedulingConfig(t *testing.T) {
 	viper.Reset()
+	// Set a valid JWT secret for the test (32+ characters required)
+	t.Setenv("JWT_SECRET", "test-jwt-secret-key-that-is-at-least-32-characters-long")
 
 	cfg, err := Load()
 	if err != nil {
@@ -57,6 +59,8 @@ func TestLoadDefaultSchedulingConfig(t *testing.T) {
 
 func TestLoadSchedulingConfigFromEnv(t *testing.T) {
 	viper.Reset()
+	// Set a valid JWT secret for the test (32+ characters required)
+	t.Setenv("JWT_SECRET", "test-jwt-secret-key-that-is-at-least-32-characters-long")
 	t.Setenv("GATEWAY_SCHEDULING_STICKY_SESSION_MAX_WAITING", "5")
 
 	cfg, err := Load()

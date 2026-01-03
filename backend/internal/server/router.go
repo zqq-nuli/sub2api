@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
-	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
+	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/server/routes"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/Wei-Shaw/sub2api/internal/web"
@@ -15,17 +15,18 @@ import (
 func SetupRouter(
 	r *gin.Engine,
 	handlers *handler.Handlers,
-	jwtAuth middleware2.JWTAuthMiddleware,
-	adminAuth middleware2.AdminAuthMiddleware,
-	apiKeyAuth middleware2.ApiKeyAuthMiddleware,
+	jwtAuth middleware.JWTAuthMiddleware,
+	adminAuth middleware.AdminAuthMiddleware,
+	apiKeyAuth middleware.ApiKeyAuthMiddleware,
+	authRateLimitMw *middleware.AuthRateLimitMiddleware,
 	apiKeyService *service.ApiKeyService,
 	subscriptionService *service.SubscriptionService,
 	cfg *config.Config,
 ) *gin.Engine {
 	// 应用中间件
-	r.Use(middleware2.Logger())
-	r.Use(middleware2.CORS())
-	r.Use(middleware2.SecurityHeaders()) // 安全响应头
+	r.Use(middleware.Logger())
+	r.Use(middleware.CORS())
+	r.Use(middleware.SecurityHeaders()) // 安全响应头
 
 	// Serve embedded frontend if available
 	if web.HasEmbeddedFrontend() {
@@ -33,7 +34,7 @@ func SetupRouter(
 	}
 
 	// 注册路由
-	registerRoutes(r, handlers, jwtAuth, adminAuth, apiKeyAuth, apiKeyService, subscriptionService, cfg)
+	registerRoutes(r, handlers, jwtAuth, adminAuth, apiKeyAuth, authRateLimitMw, apiKeyService, subscriptionService, cfg)
 
 	return r
 }
@@ -42,9 +43,10 @@ func SetupRouter(
 func registerRoutes(
 	r *gin.Engine,
 	h *handler.Handlers,
-	jwtAuth middleware2.JWTAuthMiddleware,
-	adminAuth middleware2.AdminAuthMiddleware,
-	apiKeyAuth middleware2.ApiKeyAuthMiddleware,
+	jwtAuth middleware.JWTAuthMiddleware,
+	adminAuth middleware.AdminAuthMiddleware,
+	apiKeyAuth middleware.ApiKeyAuthMiddleware,
+	authRateLimitMw *middleware.AuthRateLimitMiddleware,
 	apiKeyService *service.ApiKeyService,
 	subscriptionService *service.SubscriptionService,
 	cfg *config.Config,
@@ -56,7 +58,7 @@ func registerRoutes(
 	v1 := r.Group("/api/v1")
 
 	// 注册各模块路由
-	routes.RegisterAuthRoutes(v1, h, jwtAuth)
+	routes.RegisterAuthRoutes(v1, h, jwtAuth, authRateLimitMw)
 	routes.RegisterUserRoutes(v1, h, jwtAuth)
 	routes.RegisterAdminRoutes(v1, h, adminAuth)
 	routes.RegisterGatewayRoutes(r, h, apiKeyAuth, apiKeyService, subscriptionService, cfg)

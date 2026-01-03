@@ -417,9 +417,9 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	// 生产模式下强制密钥长度检查
-	if c.Server.Mode == "release" && len(c.JWT.Secret) < 32 {
-		return fmt.Errorf("jwt.secret must be at least 32 characters in production mode")
+	// JWT 密钥长度检查（所有模式都要求安全密钥）
+	if len(c.JWT.Secret) < 32 {
+		return fmt.Errorf("jwt.secret must be at least 32 characters for security")
 	}
 
 	if c.Database.MaxOpenConns <= 0 {

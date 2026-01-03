@@ -138,7 +138,6 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 	// Generate session hash (from header for OpenAI)
 	sessionHash := h.gatewayService.GenerateSessionHash(c)
 
-	const maxAccountSwitches = 3
 	switchCount := 0
 	failedAccountIDs := make(map[int64]struct{})
 	lastFailoverStatus := 0
@@ -214,14 +213,14 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 			var failoverErr *service.UpstreamFailoverError
 			if errors.As(err, &failoverErr) {
 				failedAccountIDs[account.ID] = struct{}{}
-				if switchCount >= maxAccountSwitches {
+				if switchCount >= DefaultMaxAccountSwitches {
 					lastFailoverStatus = failoverErr.StatusCode
 					h.handleFailoverExhausted(c, lastFailoverStatus, streamStarted)
 					return
 				}
 				lastFailoverStatus = failoverErr.StatusCode
 				switchCount++
-				log.Printf("Account %d: upstream error %d, switching account %d/%d", account.ID, failoverErr.StatusCode, switchCount, maxAccountSwitches)
+				log.Printf("Account %d: upstream error %d, switching account %d/%d", account.ID, failoverErr.StatusCode, switchCount, DefaultMaxAccountSwitches)
 				continue
 			}
 			// Error response already handled in Forward, just log
@@ -229,19 +228,28 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 			return
 		}
 
-		// Async record usage
+		// Async record usage with retry
 		go func(result *service.OpenAIForwardResult, usedAccount *service.Account) {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			if err := h.gatewayService.RecordUsage(ctx, &service.OpenAIRecordUsageInput{
-				Result:       result,
-				ApiKey:       apiKey,
-				User:         apiKey.User,
-				Account:      usedAccount,
-				Subscription: subscription,
-			}); err != nil {
-				log.Printf("Record usage failed: %v", err)
+			const maxRetries = 3
+			for attempt := 0; attempt < maxRetries; attempt++ {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				err := h.gatewayService.RecordUsage(ctx, &service.OpenAIRecordUsageInput{
+					Result:       result,
+					ApiKey:       apiKey,
+					User:         apiKey.User,
+					Account:      usedAccount,
+					Subscription: subscription,
+				})
+				cancel()
+				if err == nil {
+					return
+				}
+				log.Printf("Record usage failed (attempt %d/%d): %v", attempt+1, maxRetries, err)
+				if attempt < maxRetries-1 {
+					time.Sleep(time.Duration(1<<attempt) * time.Second)
+				}
 			}
+			log.Printf("ALERT: Record usage failed after all retries for account %d, request_id=%s", usedAccount.ID, result.RequestID)
 		}(result, account)
 		return
 	}

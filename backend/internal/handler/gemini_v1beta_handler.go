@@ -202,7 +202,6 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 	if sessionHash != "" {
 		sessionKey = "gemini:" + sessionHash
 	}
-	const maxAccountSwitches = 3
 	switchCount := 0
 	failedAccountIDs := make(map[int64]struct{})
 	lastFailoverStatus := 0
@@ -278,14 +277,14 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 			var failoverErr *service.UpstreamFailoverError
 			if errors.As(err, &failoverErr) {
 				failedAccountIDs[account.ID] = struct{}{}
-				if switchCount >= maxAccountSwitches {
+				if switchCount >= DefaultMaxAccountSwitches {
 					lastFailoverStatus = failoverErr.StatusCode
 					handleGeminiFailoverExhausted(c, lastFailoverStatus)
 					return
 				}
 				lastFailoverStatus = failoverErr.StatusCode
 				switchCount++
-				log.Printf("Gemini account %d: upstream error %d, switching account %d/%d", account.ID, failoverErr.StatusCode, switchCount, maxAccountSwitches)
+				log.Printf("Gemini account %d: upstream error %d, switching account %d/%d", account.ID, failoverErr.StatusCode, switchCount, DefaultMaxAccountSwitches)
 				continue
 			}
 			// ForwardNative already wrote the response
@@ -293,19 +292,28 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 			return
 		}
 
-		// 6) record usage async
+		// 6) record usage async with retry
 		go func(result *service.ForwardResult, usedAccount *service.Account) {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			if err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
-				Result:       result,
-				ApiKey:       apiKey,
-				User:         apiKey.User,
-				Account:      usedAccount,
-				Subscription: subscription,
-			}); err != nil {
-				log.Printf("Record usage failed: %v", err)
+			const maxRetries = 3
+			for attempt := 0; attempt < maxRetries; attempt++ {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				err := h.gatewayService.RecordUsage(ctx, &service.RecordUsageInput{
+					Result:       result,
+					ApiKey:       apiKey,
+					User:         apiKey.User,
+					Account:      usedAccount,
+					Subscription: subscription,
+				})
+				cancel()
+				if err == nil {
+					return
+				}
+				log.Printf("Record usage failed (attempt %d/%d): %v", attempt+1, maxRetries, err)
+				if attempt < maxRetries-1 {
+					time.Sleep(time.Duration(1<<attempt) * time.Second)
+				}
 			}
+			log.Printf("ALERT: Record usage failed after all retries for account %d, request_id=%s", usedAccount.ID, result.RequestID)
 		}(result, account)
 		return
 	}

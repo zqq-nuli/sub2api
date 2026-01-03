@@ -17,12 +17,16 @@ func ssoSessionKey(sessionID string) string {
 }
 
 type ssoSessionCache struct {
-	rdb *redis.Client
+	rdb    *redis.Client
+	crypto service.CryptoService
 }
 
-// NewSSOSessionCache creates a new SSOSessionCache implementation.
-func NewSSOSessionCache(rdb *redis.Client) service.OIDCSessionCache {
-	return &ssoSessionCache{rdb: rdb}
+// NewSSOSessionCache creates a new SSOSessionCache implementation with encryption.
+func NewSSOSessionCache(rdb *redis.Client, crypto service.CryptoService) service.OIDCSessionCache {
+	return &ssoSessionCache{
+		rdb:    rdb,
+		crypto: crypto,
+	}
 }
 
 func (c *ssoSessionCache) Set(ctx context.Context, sessionID string, session *service.OIDCSession, ttl time.Duration) error {
@@ -31,7 +35,14 @@ func (c *ssoSessionCache) Set(ctx context.Context, sessionID string, session *se
 	if err != nil {
 		return err
 	}
-	return c.rdb.Set(ctx, key, val, ttl).Err()
+
+	// Encrypt the session data before storing
+	encrypted, err := c.crypto.Encrypt(string(val))
+	if err != nil {
+		return err
+	}
+
+	return c.rdb.Set(ctx, key, encrypted, ttl).Err()
 }
 
 func (c *ssoSessionCache) Get(ctx context.Context, sessionID string) (*service.OIDCSession, error) {
@@ -40,8 +51,15 @@ func (c *ssoSessionCache) Get(ctx context.Context, sessionID string) (*service.O
 	if err != nil {
 		return nil, err // includes redis.Nil for key not found
 	}
+
+	// Decrypt the session data
+	decrypted, err := c.crypto.Decrypt(val)
+	if err != nil {
+		return nil, err
+	}
+
 	var session service.OIDCSession
-	if err := json.Unmarshal([]byte(val), &session); err != nil {
+	if err := json.Unmarshal([]byte(decrypted), &session); err != nil {
 		return nil, err
 	}
 	return &session, nil

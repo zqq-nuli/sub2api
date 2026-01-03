@@ -1311,6 +1311,7 @@ func extractUpstreamErrorMessage(body []byte) string {
 }
 
 func (s *GatewayService) handleErrorResponse(ctx context.Context, resp *http.Response, c *gin.Context, account *Account) (*ForwardResult, error) {
+	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 
 	// 处理上游错误，标记账号状态
@@ -1373,6 +1374,7 @@ func (s *GatewayService) handleErrorResponse(ctx context.Context, resp *http.Res
 }
 
 func (s *GatewayService) handleRetryExhaustedSideEffects(ctx context.Context, resp *http.Response, account *Account) {
+	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	statusCode := resp.StatusCode
 
@@ -1387,6 +1389,7 @@ func (s *GatewayService) handleRetryExhaustedSideEffects(ctx context.Context, re
 }
 
 func (s *GatewayService) handleFailoverSideEffects(ctx context.Context, resp *http.Response, account *Account) {
+	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	s.rateLimitService.HandleUpstreamError(ctx, account, resp.StatusCode, resp.Header, body)
 }
@@ -1718,18 +1721,24 @@ func (s *GatewayService) RecordUsage(ctx context.Context, input *RecordUsageInpu
 		if cost.TotalCost > 0 {
 			if err := s.userSubRepo.IncrementUsage(ctx, subscription.ID, cost.TotalCost); err != nil {
 				log.Printf("Increment subscription usage failed: %v", err)
+				// DB失败时使缓存失效，强制下次从DB读取，避免数据不一致
+				_ = s.billingCacheService.InvalidateSubscription(ctx, user.ID, *apiKey.GroupID)
+			} else {
+				// 仅在DB成功时更新缓存
+				s.billingCacheService.QueueUpdateSubscriptionUsage(user.ID, *apiKey.GroupID, cost.TotalCost)
 			}
-			// 异步更新订阅缓存
-			s.billingCacheService.QueueUpdateSubscriptionUsage(user.ID, *apiKey.GroupID, cost.TotalCost)
 		}
 	} else {
 		// 余额模式：扣除用户余额（使用 ActualCost 考虑倍率后的费用）
 		if cost.ActualCost > 0 {
 			if err := s.userRepo.DeductBalance(ctx, user.ID, cost.ActualCost); err != nil {
 				log.Printf("Deduct balance failed: %v", err)
+				// DB失败时使缓存失效，强制下次从DB读取，避免数据不一致
+				_ = s.billingCacheService.InvalidateUserBalance(ctx, user.ID)
+			} else {
+				// 仅在DB成功时更新缓存
+				s.billingCacheService.QueueDeductBalance(user.ID, cost.ActualCost)
 			}
-			// 异步更新余额缓存
-			s.billingCacheService.QueueDeductBalance(user.ID, cost.ActualCost)
 		}
 	}
 
