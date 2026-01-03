@@ -69,14 +69,14 @@ type IDTokenClaims struct {
 	Iat               int64    `json:"iat"`
 
 	// Forum-specific fields
-	ID             string                 `json:"id,omitempty"`              // User unique ID
-	Username       string                 `json:"username,omitempty"`        // Forum username
-	AvatarTemplate string                 `json:"avatar_template,omitempty"` // Avatar URL template
-	Active         bool                   `json:"active,omitempty"`          // Account active status
-	TrustLevel     int                    `json:"trust_level,omitempty"`     // Trust level (0-4)
-	Silenced       bool                   `json:"silenced,omitempty"`        // Silenced status
-	ExternalIDs    map[string]interface{} `json:"external_ids,omitempty"`    // External ID associations
-	APIKey         string                 `json:"api_key,omitempty"`         // API access key
+	ID             string         `json:"id,omitempty"`              // User unique ID
+	Username       string         `json:"username,omitempty"`        // Forum username
+	AvatarTemplate string         `json:"avatar_template,omitempty"` // Avatar URL template
+	Active         bool           `json:"active,omitempty"`          // Account active status
+	TrustLevel     int            `json:"trust_level,omitempty"`     // Trust level (0-4)
+	Silenced       bool           `json:"silenced,omitempty"`        // Silenced status
+	ExternalIDs    map[string]any `json:"external_ids,omitempty"`    // External ID associations
+	APIKey         string         `json:"api_key,omitempty"`         // API access key
 }
 
 // AudClaim handles aud field which can be string or []string

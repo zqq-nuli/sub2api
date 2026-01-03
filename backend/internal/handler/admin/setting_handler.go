@@ -481,7 +481,7 @@ func (h *SettingHandler) TestSSOConnection(c *gin.Context) {
 
 // UpdateSingleSettingRequest 更新单个配置项请求
 type UpdateSingleSettingRequest struct {
-	Value interface{} `json:"value" binding:"required"`
+	Value any `json:"value" binding:"required"`
 }
 
 // UpdateSingleSetting 更新单个配置项（用于实时保存）
