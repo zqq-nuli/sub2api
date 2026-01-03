@@ -278,11 +278,11 @@ func (s *OIDCSSOService) ExchangeCodeAndCreateUser(ctx context.Context, code, st
 			fmt.Sprintf("Failed to exchange authorization code: %v", err))
 	}
 
-	// Parse ID Token to get user claims
-	claims, err := s.oidcClient.ParseIDToken(tokenResp.IDToken)
+	// Verify and parse ID Token (with signature verification)
+	claims, err := s.oidcClient.VerifyIDToken(ctx, ssoConfig.IssuerURL, ssoConfig.ClientID, tokenResp.IDToken)
 	if err != nil {
 		return "", nil, false, infraerrors.BadRequest("INVALID_ID_TOKEN",
-			fmt.Sprintf("Failed to parse ID token: %v", err))
+			fmt.Sprintf("Failed to verify ID token: %v", err))
 	}
 
 	// Serialize complete claims to JSON for storage (save all fields regardless of what they are)
@@ -453,7 +453,7 @@ func (s *OIDCSSOService) validateEmailDomain(ctx context.Context, email string) 
 	var allowedDomains []string
 	if err := json.Unmarshal([]byte(allowedDomainsJSON), &allowedDomains); err != nil {
 		log.Printf("Failed to parse allowed domains: %v", err)
-		return true // On error, allow
+		return false // On error, deny login for security
 	}
 
 	if len(allowedDomains) == 0 {

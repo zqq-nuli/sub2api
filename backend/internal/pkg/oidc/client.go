@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"crypto/rand"
+
+	"github.com/coreos/go-oidc/v3/oidc"
 )
 
 // OIDCClient handles OIDC protocol operations
@@ -210,6 +212,7 @@ func (c *OIDCClient) RefreshToken(ctx context.Context, config *OIDCConfig, provi
 }
 
 // ParseIDToken parses an ID Token and extracts claims (without signature verification)
+// Deprecated: Use VerifyIDToken instead for secure token validation
 func (c *OIDCClient) ParseIDToken(idToken string) (*IDTokenClaims, error) {
 	parts := strings.Split(idToken, ".")
 	if len(parts) != 3 {
@@ -240,6 +243,39 @@ func (c *OIDCClient) ParseIDToken(idToken string) (*IDTokenClaims, error) {
 	// Basic expiration check
 	if claims.Exp > 0 && time.Now().Unix() > claims.Exp {
 		return nil, fmt.Errorf("ID token has expired")
+	}
+
+	return &claims, nil
+}
+
+// VerifyIDToken verifies an ID Token signature and returns claims
+// This method performs full OIDC token validation including:
+// - JWT signature verification using JWKS from the provider
+// - Issuer (iss) validation
+// - Audience (aud) validation
+// - Expiration (exp) validation
+func (c *OIDCClient) VerifyIDToken(ctx context.Context, issuerURL, clientID, idToken string) (*IDTokenClaims, error) {
+	// Create OIDC Provider (automatically fetches JWKS)
+	provider, err := oidc.NewProvider(ctx, issuerURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OIDC provider: %w", err)
+	}
+
+	// Create Verifier with client ID for audience validation
+	verifier := provider.Verifier(&oidc.Config{
+		ClientID: clientID,
+	})
+
+	// Verify ID Token (signature + iss + aud + exp)
+	token, err := verifier.Verify(ctx, idToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify ID token: %w", err)
+	}
+
+	// Extract claims into our custom struct
+	var claims IDTokenClaims
+	if err := token.Claims(&claims); err != nil {
+		return nil, fmt.Errorf("failed to parse ID token claims: %w", err)
 	}
 
 	return &claims, nil
