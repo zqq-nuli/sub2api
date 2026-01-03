@@ -70,7 +70,6 @@ func provideCleanup(
 	openaiOAuth *service.OpenAIOAuthService,
 	geminiOAuth *service.GeminiOAuthService,
 	antigravityOAuth *service.AntigravityOAuthService,
-	antigravityQuota *service.AntigravityQuotaRefresher,
 	sso *service.OIDCSSOService,
 	orderCleanup *service.OrderCleanupService,
 ) func() {
@@ -113,10 +112,6 @@ func provideCleanup(
 			}},
 			{"AntigravityOAuthService", func() error {
 				antigravityOAuth.Stop()
-				return nil
-			}},
-			{"AntigravityQuotaRefresher", func() error {
-				antigravityQuota.Stop()
 				return nil
 			}},
 			{"OIDCSSOService", func() error {
