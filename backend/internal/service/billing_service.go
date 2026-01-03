@@ -134,7 +134,43 @@ func (s *BillingService) initFallbackPricing() {
 		SupportsCacheBreakdown:     false,
 	}
 
-	// Gemini 2.0 Flash
+	// Gemini 3 Flash (Preview)
+	s.fallbackPrices["gemini-3-flash"] = &ModelPricing{
+		InputPricePerToken:         0.5e-6,   // $0.50 per MTok
+		OutputPricePerToken:        3.0e-6,   // $3.00 per MTok
+		CacheCreationPricePerToken: 0,        // No separate cache creation cost
+		CacheReadPricePerToken:     0.05e-6,  // estimated cache read
+		SupportsCacheBreakdown:     false,
+	}
+
+	// Gemini 2.5 Pro
+	s.fallbackPrices["gemini-2.5-pro"] = &ModelPricing{
+		InputPricePerToken:         1.25e-6,   // $1.25 per MTok
+		OutputPricePerToken:        10.0e-6,   // $10.00 per MTok
+		CacheCreationPricePerToken: 0,         // No separate cache creation cost
+		CacheReadPricePerToken:     0.3125e-6, // $0.3125 per MTok (25% of input)
+		SupportsCacheBreakdown:     false,
+	}
+
+	// Gemini 2.5 Flash
+	s.fallbackPrices["gemini-2.5-flash"] = &ModelPricing{
+		InputPricePerToken:         0.15e-6,  // $0.15 per MTok (<=200k), $0.30 for >200k
+		OutputPricePerToken:        0.60e-6,  // $0.60 per MTok (<=200k), $1.20 for >200k
+		CacheCreationPricePerToken: 0,        // No separate cache creation cost
+		CacheReadPricePerToken:     0.0375e-6, // $0.0375 per MTok
+		SupportsCacheBreakdown:     false,
+	}
+
+	// Gemini 2.5 Flash-Lite
+	s.fallbackPrices["gemini-2.5-flash-lite"] = &ModelPricing{
+		InputPricePerToken:         0.075e-6,   // $0.075 per MTok
+		OutputPricePerToken:        0.30e-6,    // $0.30 per MTok
+		CacheCreationPricePerToken: 0,          // No separate cache creation cost
+		CacheReadPricePerToken:     0.01875e-6, // $0.01875 per MTok
+		SupportsCacheBreakdown:     false,
+	}
+
+	// Gemini 2.0 Flash (Legacy)
 	s.fallbackPrices["gemini-2.0-flash"] = &ModelPricing{
 		InputPricePerToken:         0.1e-6,   // $0.10 per MTok
 		OutputPricePerToken:        0.4e-6,   // $0.40 per MTok
@@ -143,7 +179,7 @@ func (s *BillingService) initFallbackPricing() {
 		SupportsCacheBreakdown:     false,
 	}
 
-	// Gemini 1.5 Pro
+	// Gemini 1.5 Pro (Legacy)
 	s.fallbackPrices["gemini-1.5-pro"] = &ModelPricing{
 		InputPricePerToken:         3.5e-6,   // $3.50 per MTok
 		OutputPricePerToken:        10.5e-6,  // $10.50 per MTok
@@ -152,7 +188,7 @@ func (s *BillingService) initFallbackPricing() {
 		SupportsCacheBreakdown:     false,
 	}
 
-	// Gemini 1.5 Flash
+	// Gemini 1.5 Flash (Legacy)
 	s.fallbackPrices["gemini-1.5-flash"] = &ModelPricing{
 		InputPricePerToken:         0.075e-6,   // $0.075 per MTok
 		OutputPricePerToken:        0.30e-6,    // $0.30 per MTok
@@ -166,16 +202,35 @@ func (s *BillingService) initFallbackPricing() {
 func (s *BillingService) getFallbackPricing(model string) *ModelPricing {
 	modelLower := strings.ToLower(model)
 
-	// Gemini 模型匹配
+	// Gemini 模型匹配 (按版本从高到低)
 	if strings.Contains(modelLower, "gemini") {
+		// Gemini 3.x
+		if strings.Contains(modelLower, "3") && !strings.Contains(modelLower, "3.5") {
+			return s.fallbackPrices["gemini-3-flash"]
+		}
+		// Gemini 2.5
+		if strings.Contains(modelLower, "2.5") || strings.Contains(modelLower, "2-5") {
+			if strings.Contains(modelLower, "pro") {
+				return s.fallbackPrices["gemini-2.5-pro"]
+			}
+			if strings.Contains(modelLower, "lite") {
+				return s.fallbackPrices["gemini-2.5-flash-lite"]
+			}
+			return s.fallbackPrices["gemini-2.5-flash"]
+		}
+		// Gemini 2.0
 		if strings.Contains(modelLower, "2.0") || strings.Contains(modelLower, "2-0") {
 			return s.fallbackPrices["gemini-2.0-flash"]
 		}
-		if strings.Contains(modelLower, "1.5-pro") || strings.Contains(modelLower, "1.5 pro") {
+		// Gemini 1.5
+		if strings.Contains(modelLower, "1.5-pro") || strings.Contains(modelLower, "1.5 pro") || strings.Contains(modelLower, "1-5-pro") {
 			return s.fallbackPrices["gemini-1.5-pro"]
 		}
-		// Default to flash for other 1.5 models
-		return s.fallbackPrices["gemini-1.5-flash"]
+		if strings.Contains(modelLower, "1.5") || strings.Contains(modelLower, "1-5") {
+			return s.fallbackPrices["gemini-1.5-flash"]
+		}
+		// Default to latest flash
+		return s.fallbackPrices["gemini-2.5-flash"]
 	}
 
 	// 按模型系列匹配
