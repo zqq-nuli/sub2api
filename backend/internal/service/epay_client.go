@@ -193,7 +193,7 @@ func (c *EpayClient) QueryOrderStatus(tradeNo, outTradeNo string) (*EpayOrderQue
 	if err != nil {
 		return nil, fmt.Errorf("query order failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// 读取响应
 	body, err := io.ReadAll(resp.Body)

@@ -10,19 +10,16 @@ import (
 // OrderService 订单服务
 type OrderService struct {
 	orderRepo           OrderRepository
-	userRepo            UserRepository
 	billingCacheService *BillingCacheService
 }
 
 // NewOrderService 创建订单服务
 func NewOrderService(
 	orderRepo OrderRepository,
-	userRepo UserRepository,
 	billingCacheService *BillingCacheService,
 ) *OrderService {
 	return &OrderService{
 		orderRepo:           orderRepo,
-		userRepo:            userRepo,
 		billingCacheService: billingCacheService,
 	}
 }

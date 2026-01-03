@@ -93,15 +93,15 @@ const (
 	SettingKeyAdminApiKey = "admin_api_key" // 全局管理员 API Key（用于外部系统集成）
 
 	// SSO设置
-	SettingKeySSOEnabled           = "sso_enabled"             // 是否启用SSO登录
-	SettingKeyPasswordLoginEnabled = "password_login_enabled"  // 是否启用密码登录
-	SettingKeySSOIssuerURL         = "sso_issuer_url"          // OIDC Issuer URL
-	SettingKeySSOClientID          = "sso_client_id"           // OIDC Client ID
-	SettingKeySSOClientSecret      = "sso_client_secret"       // OIDC Client Secret
-	SettingKeySSORedirectURI       = "sso_redirect_uri"        // OIDC Redirect URI
-	SettingKeySSOAllowedDomains    = "sso_allowed_domains"     // 允许的邮箱域名（JSON数组）
-	SettingKeySSOAutoCreateUser    = "sso_auto_create_user"    // 是否自动创建用户
-	SettingKeySSOMinTrustLevel     = "sso_min_trust_level"     // 最小信任等级（0-4）
+	SettingKeySSOEnabled           = "sso_enabled"            // 是否启用SSO登录
+	SettingKeyPasswordLoginEnabled = "password_login_enabled" // 是否启用密码登录
+	SettingKeySSOIssuerURL         = "sso_issuer_url"         // OIDC Issuer URL
+	SettingKeySSOClientID          = "sso_client_id"          // OIDC Client ID
+	SettingKeySSOClientSecret      = "sso_client_secret"      // OIDC Client Secret
+	SettingKeySSORedirectURI       = "sso_redirect_uri"       // OIDC Redirect URI
+	SettingKeySSOAllowedDomains    = "sso_allowed_domains"    // 允许的邮箱域名（JSON数组）
+	SettingKeySSOAutoCreateUser    = "sso_auto_create_user"   // 是否自动创建用户
+	SettingKeySSOMinTrustLevel     = "sso_min_trust_level"    // 最小信任等级（0-4）
 
 	// Gemini 配额策略（JSON）
 	SettingKeyGeminiQuotaPolicy = "gemini_quota_policy"
@@ -112,13 +112,13 @@ const AdminApiKeyPrefix = "admin-"
 
 // 易支付设置
 const (
-	SettingKeyEpayEnabled        = "epay_enabled"        // 是否启用易支付
-	SettingKeyEpayApiURL         = "epay_api_url"        // 易支付API地址
-	SettingKeyEpayMerchantID     = "epay_merchant_id"    // 商户ID
-	SettingKeyEpayMerchantKey    = "epay_merchant_key"   // 商户密钥（加密存储）
-	SettingKeyEpayNotifyURL      = "epay_notify_url"     // 异步回调URL
-	SettingKeyEpayReturnURL      = "epay_return_url"     // 同步回调URL
-	SettingKeyPaymentChannels    = "payment_channels"    // 支付渠道配置（JSON数组）
+	SettingKeyEpayEnabled     = "epay_enabled"      // 是否启用易支付
+	SettingKeyEpayApiURL      = "epay_api_url"      // 易支付API地址
+	SettingKeyEpayMerchantID  = "epay_merchant_id"  // 商户ID
+	SettingKeyEpayMerchantKey = "epay_merchant_key" // 商户密钥（加密存储）
+	SettingKeyEpayNotifyURL   = "epay_notify_url"   // 异步回调URL
+	SettingKeyEpayReturnURL   = "epay_return_url"   // 同步回调URL
+	SettingKeyPaymentChannels = "payment_channels"  // 支付渠道配置（JSON数组）
 )
 
 // GetDefaultPaymentChannels 获取默认支付渠道配置

@@ -125,7 +125,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	userAttributeService := service.NewUserAttributeService(userAttributeDefinitionRepository, userAttributeValueRepository)
 	userAttributeHandler := admin.NewUserAttributeHandler(userAttributeService)
 	orderRepository := repository.NewOrderRepository(client)
-	orderService := service.NewOrderService(orderRepository, userRepository, billingCacheService)
+	orderService := service.NewOrderService(orderRepository, billingCacheService)
 	orderHandler := admin.NewOrderHandler(orderService)
 	rechargeProductRepository := repository.NewRechargeProductRepository(client)
 	rechargeProductCache := repository.NewRechargeProductCache(redisClient)

@@ -81,7 +81,7 @@ func main() {
 		fmt.Printf("请求失败: %v\n", err)
 		os.Exit(1)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// 读取响应
 	body, err := io.ReadAll(resp.Body)
