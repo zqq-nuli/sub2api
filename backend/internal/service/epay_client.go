@@ -154,17 +154,17 @@ func IsValidPaymentMethod(method string) bool {
 
 // EpayOrderQueryResponse 易支付订单查询响应
 type EpayOrderQueryResponse struct {
-	Code       int    `json:"code"`        // 1=成功，-1=失败
-	Msg        string `json:"msg"`         // 消息
-	TradeNo    string `json:"trade_no"`    // 支付平台订单号
+	Code       int    `json:"code"`         // 1=成功，-1=失败
+	Msg        string `json:"msg"`          // 消息
+	TradeNo    string `json:"trade_no"`     // 支付平台订单号
 	OutTradeNo string `json:"out_trade_no"` // 商户订单号
-	Type       string `json:"type"`        // 支付类型
-	PID        string `json:"pid"`         // 商户ID
-	AddTime    string `json:"addtime"`     // 创建时间
-	EndTime    string `json:"endtime"`     // 完成时间
-	Name       string `json:"name"`        // 订单名称
-	Money      string `json:"money"`       // 金额
-	Status     int    `json:"status"`      // 状态：1=成功，0=处理中/失败
+	Type       string `json:"type"`         // 支付类型
+	PID        string `json:"pid"`          // 商户ID
+	AddTime    string `json:"addtime"`      // 创建时间
+	EndTime    string `json:"endtime"`      // 完成时间
+	Name       string `json:"name"`         // 订单名称
+	Money      string `json:"money"`        // 金额
+	Status     int    `json:"status"`       // 状态：1=成功，0=处理中/失败
 }
 
 // QueryOrderStatus 查询上游支付订单状态
