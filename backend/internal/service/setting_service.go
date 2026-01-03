@@ -21,12 +21,12 @@ type CryptoService interface {
 }
 
 var (
-	ErrRegistrationDisabled     = infraerrors.Forbidden("REGISTRATION_DISABLED", "registration is currently disabled")
-	ErrSettingNotFound          = infraerrors.NotFound("SETTING_NOT_FOUND", "setting not found")
-	ErrPasswordLoginDisabled    = infraerrors.Forbidden("PASSWORD_LOGIN_DISABLED", "password login is disabled")
-	ErrSSOLoginDisabled         = infraerrors.Forbidden("SSO_LOGIN_DISABLED", "SSO login is disabled")
-	ErrNoLoginMethodAvailable   = infraerrors.ServiceUnavailable("NO_LOGIN_METHOD", "no login method available")
-	ErrInvalidLoginConfig       = infraerrors.BadRequest("INVALID_LOGIN_CONFIG", "at least one login method must be enabled")
+	ErrRegistrationDisabled   = infraerrors.Forbidden("REGISTRATION_DISABLED", "registration is currently disabled")
+	ErrSettingNotFound        = infraerrors.NotFound("SETTING_NOT_FOUND", "setting not found")
+	ErrPasswordLoginDisabled  = infraerrors.Forbidden("PASSWORD_LOGIN_DISABLED", "password login is disabled")
+	ErrSSOLoginDisabled       = infraerrors.Forbidden("SSO_LOGIN_DISABLED", "SSO login is disabled")
+	ErrNoLoginMethodAvailable = infraerrors.ServiceUnavailable("NO_LOGIN_METHOD", "no login method available")
+	ErrInvalidLoginConfig     = infraerrors.BadRequest("INVALID_LOGIN_CONFIG", "at least one login method must be enabled")
 )
 
 type SettingRepository interface {
@@ -245,14 +245,14 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 
 	// 初始化默认设置
 	defaults := map[string]string{
-		SettingKeyRegistrationEnabled:  "true",
-		SettingKeyEmailVerifyEnabled:   "false",
-		SettingKeySiteName:             "Sub2API",
-		SettingKeySiteLogo:             "",
-		SettingKeyDefaultConcurrency:   strconv.Itoa(s.cfg.Default.UserConcurrency),
-		SettingKeyDefaultBalance:       strconv.FormatFloat(s.cfg.Default.UserBalance, 'f', 8, 64),
-		SettingKeySmtpPort:             "587",
-		SettingKeySmtpUseTLS:           "false",
+		SettingKeyRegistrationEnabled: "true",
+		SettingKeyEmailVerifyEnabled:  "false",
+		SettingKeySiteName:            "Sub2API",
+		SettingKeySiteLogo:            "",
+		SettingKeyDefaultConcurrency:  strconv.Itoa(s.cfg.Default.UserConcurrency),
+		SettingKeyDefaultBalance:      strconv.FormatFloat(s.cfg.Default.UserBalance, 'f', 8, 64),
+		SettingKeySmtpPort:            "587",
+		SettingKeySmtpUseTLS:          "false",
 		// SSO默认设置
 		SettingKeySSOEnabled:           "false",
 		SettingKeyPasswordLoginEnabled: "true",
