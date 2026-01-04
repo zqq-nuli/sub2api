@@ -136,10 +136,10 @@ func (s *BillingService) initFallbackPricing() {
 
 	// Gemini 3 Flash (Preview)
 	s.fallbackPrices["gemini-3-flash"] = &ModelPricing{
-		InputPricePerToken:         0.5e-6,   // $0.50 per MTok
-		OutputPricePerToken:        3.0e-6,   // $3.00 per MTok
-		CacheCreationPricePerToken: 0,        // No separate cache creation cost
-		CacheReadPricePerToken:     0.05e-6,  // estimated cache read
+		InputPricePerToken:         0.5e-6,  // $0.50 per MTok
+		OutputPricePerToken:        3.0e-6,  // $3.00 per MTok
+		CacheCreationPricePerToken: 0,       // No separate cache creation cost
+		CacheReadPricePerToken:     0.05e-6, // estimated cache read
 		SupportsCacheBreakdown:     false,
 	}
 
@@ -154,9 +154,9 @@ func (s *BillingService) initFallbackPricing() {
 
 	// Gemini 2.5 Flash
 	s.fallbackPrices["gemini-2.5-flash"] = &ModelPricing{
-		InputPricePerToken:         0.15e-6,  // $0.15 per MTok (<=200k), $0.30 for >200k
-		OutputPricePerToken:        0.60e-6,  // $0.60 per MTok (<=200k), $1.20 for >200k
-		CacheCreationPricePerToken: 0,        // No separate cache creation cost
+		InputPricePerToken:         0.15e-6,   // $0.15 per MTok (<=200k), $0.30 for >200k
+		OutputPricePerToken:        0.60e-6,   // $0.60 per MTok (<=200k), $1.20 for >200k
+		CacheCreationPricePerToken: 0,         // No separate cache creation cost
 		CacheReadPricePerToken:     0.0375e-6, // $0.0375 per MTok
 		SupportsCacheBreakdown:     false,
 	}
