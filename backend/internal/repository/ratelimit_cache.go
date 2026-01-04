@@ -63,8 +63,16 @@ func (c *rateLimitCache) IncrementAndCheck(ctx context.Context, key string, limi
 		return true, limit, err
 	}
 
-	allowedInt := result[0].(int64)
-	remainingInt := result[1].(int64)
+	allowedInt, ok := result[0].(int64)
+	if !ok {
+		// Type assertion failed, fail-open
+		return true, limit, nil
+	}
+	remainingInt, ok := result[1].(int64)
+	if !ok {
+		// Type assertion failed, fail-open
+		return true, limit, nil
+	}
 
 	return allowedInt == 1, int(remainingInt), nil
 }
